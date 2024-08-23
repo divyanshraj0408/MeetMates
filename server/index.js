@@ -1,20 +1,29 @@
+const http = require("http");
 const express = require("express");
 const { Server } = require("socket.io");
-
-const io = new Server({
-  cors: true,
-});
+const { UserManager } = require("./managers/UserManager");
 
 const app = express();
-const port = 3000;
+const server = http.createServer(app);
 
-app.get("/", (req, res) => {
-  res.send("Hello World!");
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+  },
 });
+
+const userManager = new UserManager();
+
 io.on("connection", (socket) => {
-  console.log("new connection");
+  console.log("a user connected");
+  userManager.addUser("randomName", socket);
+
+  socket.on("disconnect", () => {
+    console.log("user disconnected");
+    userManager.removeUser(socket.id);
+  });
 });
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+
+server.listen(3000, () => {
+  console.log("listening on *:3000");
 });
-io.listen(8001);

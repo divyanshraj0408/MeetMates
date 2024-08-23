@@ -1,58 +1,64 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const { Server } = require("socket.io");
+const RoomManager = require("./RoomManager");
 
-const io = new Server({
-  cors: true,
-});
-const app = express();
-
-app.use(bodyParser.json());
-
-const users = [];
-const queue = [];
-
-const addUser = (name, socket) => {
-  users.push(name, socket);
-  queue.push(socket.id);
-  socket.emit("lobby");
-  clearQueue();
-  initHandlers(socket);
-};
-const removeUser = (socketId) => {
-  const user = users.find((x) => x.socket.id === socketId);
-  users = users.filter((x) => x.socket.id !== socketId);
-  queue = queue.filter((x) => x === socketId);
-};
-const clearQueue = () => {
-  console.log("inside clear queues");
-  console.log(queue.length);
-  if (queue.length < 2) {
-    return;
+class UserManager {
+  constructor() {
+    this.users = [];
+    this.queue = [];
+    this.roomManager = new RoomManager();
   }
-  const id2 = queue.pop();
-  const id1 = queue.pop();
-  console.log("id is " + id1 + " " + id2);
-  const user1 = users.find((x) => x.socket.id === id1);
-  const user2 = users.find((x) => x.socket.id === id2);
-  if (!user1 || !user2) {
-    return;
+
+  addUser(name, socket) {
+    this.users.push({
+      name: name,
+      socket: socket,
+    });
+    this.queue.push(socket.id);
+    socket.emit("lobby");
+    this.clearQueue();
+    this.initHandlers(socket);
   }
-  console.log("creating roonm");
 
-  const room = roomManager.createRoom(user1, user2);
-  clearQueue();
-};
-const initHandlers = (socket) => {
-  socket.on("offer", ({ sdp, roomId }) => {
-    roomManager.onOffer(roomId, sdp, socket.id);
-  });
+  removeUser(socketId) {
+    const user = this.users.find((user) => user.socket.id === socketId);
 
-  socket.on("answer", ({ sdp, roomId }) => {
-    roomManager.onAnswer(roomId, sdp, socket.id);
-  });
+    this.users = this.users.filter((user) => user.socket.id !== socketId);
+    this.queue = this.queue.filter((id) => id !== socketId);
+  }
 
-  socket.on("add-ice-candidate", ({ candidate, roomId, type }) => {
-    roomManager.onIceCandidates(roomId, socket.id, candidate, type);
-  });
-};
+  clearQueue() {
+    console.log("inside clearQueue");
+    console.log(this.queue.length);
+    if (this.queue.length < 2) {
+      return;
+    }
+
+    const id1 = this.queue.pop();
+    const id2 = this.queue.pop();
+    console.log("id is " + id1 + " " + id2);
+    const user1 = this.users.find((user) => user.socket.id === id1);
+    const user2 = this.users.find((user) => user.socket.id === id2);
+
+    if (!user1 || !user2) {
+      return;
+    }
+    console.log("creating room");
+
+    const room = this.roomManager.createRoom(user1, user2);
+    this.clearQueue();
+  }
+
+  initHandlers(socket) {
+    socket.on("offer", ({ sdp, roomId }) => {
+      this.roomManager.onOffer(roomId, sdp, socket.id);
+    });
+
+    socket.on("answer", ({ sdp, roomId }) => {
+      this.roomManager.onAnswer(roomId, sdp, socket.id);
+    });
+
+    socket.on("add-ice-candidate", ({ candidate, roomId, type }) => {
+      this.roomManager.onIceCandidates(roomId, socket.id, candidate, type);
+    });
+  }
+}
+module.exports = { UserManager };
