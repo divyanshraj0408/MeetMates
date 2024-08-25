@@ -167,7 +167,7 @@ export const Room = ({ name, localAudioTrack, localVideoTrack }) => {
 
   return (
     <div>
-      {/* Hi {name} */}
+      Hi {name}
       <div className="flex w-screen h-screen">
         <div className="w-1/2 h-full flex justify-center items-center bg-black">
           <video
