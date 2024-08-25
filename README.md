@@ -5,7 +5,7 @@ RoomBall is a web application designed exclusively for students. It allows stude
 ## Features
 
 - **Random Video Matching**: Students are matched with each other randomly for video calls.
-- **Secure Access**: Only students from Dr. Akhilesh Das Gupta Institute of Professional Studies can sign up and use the platform.
+- **Secure Access**: Only students can sign up and use the platform.
 - **Real-time Communication**: Utilizes WebRTC for high-quality video and audio communication.
 
 ## Future Scope
