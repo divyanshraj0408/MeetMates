@@ -167,10 +167,23 @@ export const Room = ({ name, localAudioTrack, localVideoTrack }) => {
 
   return (
     <div>
-      Hi {name}
-      <video autoPlay width={400} height={400} ref={localVideoRef} />
-      {lobby ? "Waiting to connect you to someone" : null}
-      <video autoPlay width={400} height={400} ref={remoteVideoRef} />
+      {/* Hi {name} */}
+      <div className="flex w-screen h-screen">
+        <div className="w-1/2 h-full flex justify-center items-center bg-black">
+          <video
+            autoPlay
+            ref={localVideoRef}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="w-1/2 h-full flex justify-center items-center bg-black">
+          <video
+            autoPlay
+            ref={remoteVideoRef}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
     </div>
   );
 };
