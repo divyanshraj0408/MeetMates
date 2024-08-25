@@ -1,6 +1,6 @@
 # RoomBall
 
-RoomBall is a web application designed exclusively for the students of Dr. Akhilesh Das Gupta Institute of Professional Studies. It allows students to connect with each other through random video calls, similar to Omegle. The platform aims to foster connections among students, helping them meet new people and share interests in a secure environment.
+RoomBall is a web application designed exclusively for students. It allows students to connect with each other through random video calls. The platform aims to foster connections among students, helping them meet new people and share interests in a secure environment.
 
 ## Features
 
