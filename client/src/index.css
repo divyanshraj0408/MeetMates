@@ -1,6 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@font-face {
+  /* font-family: "Gonzaga-ExtraLight";
+  src: url("../Gonzaga-Trial-ExtraLight.ttf"); */
+  font-family: "Gonzaga-regular";
+  src: url("../Gonzaga-Trial-Regular.ttf");
+}
+
 * {
-  font-family: "Clash Grotesk", sans-serif;
+  font-family: "Gonzaga-regular", sans-serif;
 }
