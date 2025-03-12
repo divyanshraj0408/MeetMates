@@ -1,0 +1,129 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap");
+
+* {
+  box-sizing: border-box;
+}
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: "Space Grotesk", sans-serif;
+  background-color: #f5f5f5;
+  padding: 20px;
+}
+
+.login-card {
+  background-color: white;
+  border: 3px solid black;
+  border-radius: 2px;
+  padding: 40px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 8px 8px 0px #000000;
+  transform: translateX(-4px) translateY(-4px);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.login-card:hover {
+  transform: translateX(-2px) translateY(-2px);
+  box-shadow: 6px 6px 0px #000000;
+}
+
+h2 {
+  margin-top: 0;
+  margin-bottom: 30px;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #000;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+input[type="email"] {
+  width: 100%;
+  padding: 12px 16px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+  border: 3px solid #000;
+  background-color: #fff;
+  outline: none;
+  transition: transform 0.1s;
+}
+
+input[type="email"]:focus {
+  transform: translateX(-3px) translateY(-3px);
+  box-shadow: 3px 3px 0px #000000;
+}
+
+.checkbox-container {
+  margin-bottom: 25px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+input[type="checkbox"] {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #000;
+  background-color: white;
+  margin-right: 10px;
+  position: relative;
+  cursor: pointer;
+}
+
+input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.checkbox-text {
+  font-size: 1rem;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 14px 20px;
+  background-color: #000;
+  color: white;
+  border: 3px solid #000;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.submit-button:hover {
+  background-color: #000;
+  transform: translateX(-3px) translateY(-3px);
+  box-shadow: 3px 3px 0px #000000;
+}
+
+.submit-button:active {
+  transform: translateX(0) translateY(0);
+  box-shadow: none;
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 25px;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+}
