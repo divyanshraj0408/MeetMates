@@ -14,7 +14,7 @@ app.use(cors());
 // Socket.io server with CORS config
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // Your React app URL
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173", // Use CORS_ORIGIN from environment or fallback to localhost
     methods: ["GET", "POST"],
   },
 });
