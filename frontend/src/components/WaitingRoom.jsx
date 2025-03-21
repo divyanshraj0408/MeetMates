@@ -1,5 +1,5 @@
 // import  from 'react';
-
+import "./waitingroom.css";
 function WaitingRoom() {
   return (
     <div className="waiting-container">

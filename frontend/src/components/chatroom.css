@@ -1,0 +1,42 @@
+/* Chat Room Component */
+.chat-container {
+  width: 100vw;
+  height: 80vh;
+}
+
+.chat-card {
+  background-color: white;
+  border-radius: 12px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 4px 12px var(--shadow-color);
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 12px 12px 0 0;
+}
+
+.chat-header h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.next-button {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+  padding: 8px 16px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.next-button:hover {
+  background-color: #5cb2e6;
+}

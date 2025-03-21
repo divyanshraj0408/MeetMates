@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import socket from "../Socket";
-
+import "./videochat.css";
 function VideoChat({ socketId, toggleVideo }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
