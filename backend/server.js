@@ -36,7 +36,7 @@ io.on("connection", (socket) => {
     );
 
     // Verify college email domain
-    if (!collegeEmail.endsWith("@yourcollege.edu")) {
+    if (!collegeEmail.endsWith("@adgitmdelhi.ac.in")) {
       socket.emit("error", "Please use your college email");
       return;
     }
