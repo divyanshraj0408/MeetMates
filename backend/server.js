@@ -1,99 +1,15 @@
-// Updated server.js with WebRTC signaling and Google Authentication
+// Updated server.js with WebRTC signaling
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
-const passport = require("passport");
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const session = require("express-session");
 
 const app = express();
 const server = http.createServer(app);
 
 // Set up CORS for development
 app.use(cors());
-
-// Configure session middleware
-app.use(
-  session({
-    secret: "your-secret-key", // Replace with a strong secret
-    resave: false,
-    saveUninitialized: true,
-  })
-);
-
-// Initialize Passport.js
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Configure Passport.js with Google OAuth
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: "629929963829-5hbepdf9rrvtq529r246t65fahrm24r5.apps.googleusercontent.com", // Replace with your Google Client ID
-      clientSecret: "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", // Replace with your Google Client Secret
-      callbackURL: "/auth/google/callback",
-    },
-    (accessToken, refreshToken, profile, done) => {
-      // Restrict login to @adgitmdelhi.ac.in domain
-      if (profile._json.hd !== "adgitmdelhi.ac.in") {
-        return done(null, false, { message: "Invalid email domain" });
-      }
-      return done(null, profile);
-    }
-  )
-);
-
-// Serialize user into session
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-
-// Deserialize user from session
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
-
-// Google Auth Routes
-app.get(
-  "/auth/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
-
-app.get(
-  "/auth/google/callback",
-  passport.authenticate("google", {
-    failureRedirect: "/login", // Redirect to login page on failure
-  }),
-  (req, res) => {
-    // Successful login
-    res.redirect("/"); // Redirect to the frontend or dashboard
-  }
-);
-
-// Logout route
-app.get("/logout", (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      console.error(err);
-    }
-    res.redirect("/");
-  });
-});
-
-// Middleware to check authentication
-function isAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).send("Unauthorized");
-}
-
-// Example protected route
-app.get("/protected", isAuthenticated, (req, res) => {
-  res.send(`Hello, ${req.user.displayName}`);
-});
 
 // Socket.io server with CORS config
 const io = new Server(server, {
