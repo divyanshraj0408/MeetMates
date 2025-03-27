@@ -1,14 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./login.css";
+import { renderGoogleButton } from "../googleAuth.js";
+
+
+const CLIENT_ID = "629929963829-5hbepdf9rrvtq529r246t65fahrm24r5.apps.googleusercontent.com"; // paste your actual Client ID
+
 function Login({ onStart }) {
   const [email, setEmail] = useState("");
   const [withVideo, setWithVideo] = useState(true);
+
+  useEffect(() => {
+    renderGoogleButton("google-signin-btn", CLIENT_ID, handleGoogleResponse);
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (email) {
       onStart(email, withVideo);
     }
+  };
+
+  const handleGoogleResponse = (response) => {
+    const jwt = response.credential;
+
+    // Decode JWT (optional, or send it to your server for verification)
+    const base64Url = jwt.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    const payload = JSON.parse(jsonPayload);
+    const email = payload.email;
+
+    if (!email.endsWith("@adgitmdelhi.ac.in")) {
+      alert("Please sign in with your college email.");
+      return;
+    }
+
+    onStart(email, withVideo);
   };
 
   return (
@@ -41,6 +73,11 @@ function Login({ onStart }) {
           <button type="submit" className="submit-button">
             Start Chatting
           </button>
+
+          <div className="or-separator">or</div>
+
+          {/* Google Sign-In Button (Rendered via Google SDK) */}
+          <div id="google-signin-btn" className="google-sdk-button" />
         </form>
       </div>
     </div>
