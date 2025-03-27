@@ -118,6 +118,73 @@ input[type="checkbox"]:checked::after {
   box-shadow: none;
 }
 
+.or-separator {
+  text-align: center;
+  margin: 16px 0;
+  color: #777;
+  font-size: 14px;
+  position: relative;
+}
+
+.or-separator::before,
+.or-separator::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background-color: #ccc;
+}
+
+.or-separator::before {
+  left: 0;
+}
+
+.or-separator::after {
+  right: 0;
+}
+
+.google-button {
+  width: 100%;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: "Space Grotesk", sans-serif;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 3px 3px 0px #000;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.google-icon {
+  width: 20px;
+  height: 20px;
+  background-color: transparent;
+  border-radius: 50%;
+}
+
+
+.google-button:hover {
+  transform: translateX(-3px) translateY(-3px);
+  box-shadow: 5px 5px 0px #000;
+}
+
+.google-button:active {
+  transform: translateX(0) translateY(0);
+  box-shadow: none;
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+}
+
 @media (max-width: 480px) {
   .login-card {
     padding: 25px;
