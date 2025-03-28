@@ -45,4 +45,4 @@ npm install
 This project is open-source under the MIT License.
 
 ### 🔗 Contributions are welcome! Feel free to submit issues or feature requests.
-Made with ❤️ by Your Name
+Mates behind MeetMates: [Sagar Kumar Jha](https://github.com/sagar-03) ,[Shivansh Sharma](https://www.linkedin.com/in/shivanssharma/) & Me.
