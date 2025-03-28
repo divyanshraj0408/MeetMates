@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import "./login.css";
 import { renderGoogleButton } from "../googleAuth.js";
 
-
-const CLIENT_ID = "629929963829-5hbepdf9rrvtq529r246t65fahrm24r5.apps.googleusercontent.com"; // paste your actual Client ID
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; // paste your actual Client ID
 
 function Login({ onStart }) {
   const [email, setEmail] = useState("");
