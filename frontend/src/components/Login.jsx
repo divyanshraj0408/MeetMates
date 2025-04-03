@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import "./login.css";
 import { renderGoogleButton } from "../googleAuth.js";
+import UploadIdCard from "./UploadIdCard.jsx";
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; // paste your actual Client ID
 
 function Login({ onStart }) {
   const [email, setEmail] = useState("");
+  const [idCard, setIdCard] = useState("");
   const [withVideo, setWithVideo] = useState(true);
 
   useEffect(() => {
@@ -40,6 +42,9 @@ function Login({ onStart }) {
     }
 
     onStart(email, withVideo);
+  };
+  const handleUploadSuccess = (filePath) => {
+    setIdCard(filePath);
   };
 
   return (
@@ -79,6 +84,7 @@ function Login({ onStart }) {
           <div className="google-signin-container">
             <div id="google-signin-btn" className="google-sdk-button" />
           </div>
+          <UploadIdCard onUploadSuccess={handleUploadSuccess} />
         </form>
       </div>
     </div>
