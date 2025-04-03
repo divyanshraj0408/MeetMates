@@ -169,7 +169,6 @@ input[type="checkbox"]:checked::after {
   border-radius: 50%;
 }
 
-
 .google-button:hover {
   transform: translateX(-3px) translateY(-3px);
   box-shadow: 5px 5px 0px #000;
@@ -184,7 +183,17 @@ input[type="checkbox"]:checked::after {
   width: 20px;
   height: 20px;
 }
-
+#google-signin-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+.google-signin-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
 @media (max-width: 480px) {
   .login-card {
     padding: 25px;

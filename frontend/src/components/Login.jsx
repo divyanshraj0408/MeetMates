@@ -76,7 +76,9 @@ function Login({ onStart }) {
           <div className="or-separator">or</div>
 
           {/* Google Sign-In Button (Rendered via Google SDK) */}
-          <div id="google-signin-btn" className="google-sdk-button" />
+          <div className="google-signin-container">
+            <div id="google-signin-btn" className="google-sdk-button" />
+          </div>
         </form>
       </div>
     </div>
