@@ -1,44 +1,37 @@
-// Updated server.js with WebRTC signaling
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
+const { authenticateUser } = require("./config/auth"); // Import authentication logic
 
 const app = express();
 const server = http.createServer(app);
 
-// Set up CORS for development
 app.use(cors());
 
-// Socket.io server with CORS config
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173", // Use CORS_ORIGIN from environment or fallback to localhost
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
     methods: ["GET", "POST"],
   },
 });
 
-// Queue for waiting users
 let waitingUsers = [];
-// Users who want video
 let videoEnabledUsers = new Set();
-// Active chat pairs
 let chatPairs = {};
 
 io.on("connection", (socket) => {
   console.log("New user connected:", socket.id);
 
-  // When user wants to find a chat
   socket.on("findChat", (collegeEmail, withVideo = false) => {
     console.log(
       `User ${socket.id} looking for chat with email: ${collegeEmail}, video: ${withVideo}`
     );
 
     // Verify college email domain
-    if (!collegeEmail.endsWith("@adgitmdelhi.ac.in")) {
-      socket.emit("error", "Please use your college email");
-      return;
+    if (!authenticateUser(socket, collegeEmail)) {
+      return; // Stop execution if authentication fails
     }
 
     // Remove from any existing chat if present
