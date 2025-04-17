@@ -4,13 +4,18 @@
   box-sizing: border-box;
 }
 
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f5;
+  font-family: "Space Grotesk", sans-serif;
+}
+
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  font-family: "Space Grotesk", sans-serif;
-  background-color: #f5f5f5;
   padding: 20px;
 }
 
@@ -24,6 +29,7 @@
   box-shadow: 8px 8px 0px #000000;
   transform: translateX(-4px) translateY(-4px);
   transition: transform 0.2s, box-shadow 0.2s;
+  text-align: center;
 }
 
 .login-card:hover {
@@ -39,11 +45,8 @@ h2 {
   color: #000;
 }
 
-.input-group {
-  margin-bottom: 20px;
-}
-
-input[type="email"] {
+input[type="email"],
+input[type="password"] {
   width: 100%;
   padding: 12px 16px;
   font-family: "Space Grotesk", sans-serif;
@@ -51,22 +54,22 @@ input[type="email"] {
   border: 3px solid #000;
   background-color: #fff;
   outline: none;
-  transition: transform 0.1s;
+  transition: transform 0.1s, box-shadow 0.1s;
+  margin-bottom: 16px;
 }
 
-input[type="email"]:focus {
+input[type="email"]:focus,
+input[type="password"]:focus {
   transform: translateX(-3px) translateY(-3px);
   box-shadow: 3px 3px 0px #000000;
-}
-
-.checkbox-container {
-  margin-bottom: 25px;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
   cursor: pointer;
+  margin-bottom: 20px;
+  font-size: 1rem;
 }
 
 input[type="checkbox"] {
@@ -94,6 +97,7 @@ input[type="checkbox"]:checked::after {
   font-size: 1rem;
 }
 
+button[type="submit"],
 .submit-button {
   width: 100%;
   padding: 14px 20px;
@@ -107,15 +111,28 @@ input[type="checkbox"]:checked::after {
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
+button[type="submit"]:hover,
 .submit-button:hover {
-  background-color: #000;
   transform: translateX(-3px) translateY(-3px);
   box-shadow: 3px 3px 0px #000000;
 }
 
+button[type="submit"]:active,
 .submit-button:active {
   transform: translateX(0) translateY(0);
   box-shadow: none;
+}
+
+.toggle-link {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #007bff;
+  cursor: pointer;
+  transition: text-decoration 0.2s;
+}
+
+.toggle-link:hover {
+  text-decoration: underline;
 }
 
 .or-separator {
@@ -144,45 +161,85 @@ input[type="checkbox"]:checked::after {
   right: 0;
 }
 
-.google-button {
+/* Enhanced Google Sign-In Button */
+.google-sdk-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 4px;
   width: 100%;
-  background-color: #4285f4;
-  color: white;
-  border: none;
-  padding: 12px 16px;
-  font-size: 16px;
-  font-weight: 500;
-  font-family: "Space Grotesk", sans-serif;
-  border-radius: 4px;
+  max-width: 100%;
+  box-shadow: 4px 4px 0px #000;
+  transition: all 0.2s ease-in-out;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #4285f4;
+  margin-bottom: 16px;
+}
+
+.google-sdk-button:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #000;
+}
+
+.google-sdk-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: linear-gradient(90deg, #4285f4, #34a853, #fbbc05, #ea4335);
+  background-size: 300% 300%;
+  animation: glow 2.5s linear infinite;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.google-sdk-button:hover::before {
+  opacity: 1;
+}
+
+.google-sdk-button > div {
+  position: relative;
+  z-index: 1;
+}
+
+.google-signin-inner {
+  background: white;
+  padding: 10px 20px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 500;
+  color: #444;
+  font-size: 16px;
   gap: 10px;
-  box-shadow: 3px 3px 0px #000;
-  transition: transform 0.2s, box-shadow 0.2s;
+  border: none;
+  outline: none;
 }
-.google-icon {
-  width: 20px;
+
+.google-signin-inner img {
   height: 20px;
-  background-color: transparent;
-  border-radius: 50%;
-}
-
-
-.google-button:hover {
-  transform: translateX(-3px) translateY(-3px);
-  box-shadow: 5px 5px 0px #000;
-}
-
-.google-button:active {
-  transform: translateX(0) translateY(0);
-  box-shadow: none;
-}
-
-.google-icon {
   width: 20px;
-  height: 20px;
+}
+
+/* Animation */
+@keyframes glow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -193,4 +250,21 @@ input[type="checkbox"]:checked::after {
   h2 {
     font-size: 1.5rem;
   }
+}
+
+
+/* Loading spinner */
+.loader {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #000;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
