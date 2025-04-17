@@ -7,22 +7,27 @@ const Tesseract = require("tesseract.js");
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
-// Allowed Enrollment Numbers (can also be fetched from DB)
-const ALLOWED_ENROLLMENTS = ["02696202722"]; // ✅ Add more as needed
-
 router.post("/image-login", upload.single("image"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({
+      status: "error",
+      message: "No image file uploaded.",
+    });
+  }
+
   const imagePath = path.join(__dirname, "..", req.file.path);
 
   try {
     const result = await Tesseract.recognize(imagePath, "eng");
     const extractedText = result.data.text;
+
     fs.unlinkSync(imagePath);
 
-    console.log("🧾 Extracted OCR Text:\n", extractedText);
+    console.log("Extracted OCR Text:\n", extractedText);
 
-    // Match Enrollment No (11-digit number after "Enrollment No")
-    const match = extractedText.match(/Enrollment No\.?\s*[:\-]?\s*(\d{11})/i);
-    const enrollmentNo = match?.[1];
+    // Match Enrollment Number
+    const enrollmentMatch = extractedText.match(/Enrollment No\.?\s*[:\-]?\s*(\d{11})/i);
+    const enrollmentNo = enrollmentMatch?.[1];
 
     if (!enrollmentNo) {
       return res.status(400).json({
@@ -31,24 +36,39 @@ router.post("/image-login", upload.single("image"), async (req, res) => {
       });
     }
 
-    if (!ALLOWED_ENROLLMENTS.includes(enrollmentNo)) {
-      return res.status(401).json({
+    // Match Name (more flexible + multiline support)
+    const nameMatch = extractedText.match(/Name\s*[:\-]?\s*([A-Z][A-Z ]{2,})/i);
+    const fullName = nameMatch?.[1]?.trim();
+
+    if (!fullName) {
+      return res.status(400).json({
         status: "error",
-        message: "Enrollment number is not authorized.",
-        enrollment: enrollmentNo,
+        message: "Name could not be extracted from the ID card.",
       });
     }
+
+    // ✅ Remove all spaces and extract first 5 characters
+    const userId = fullName.replace(/\s+/g, "").substring(0, 5);
 
     return res.json({
       status: "success",
       message: "ID verified successfully",
       enrollment_no: enrollmentNo,
-      token: "fake-jwt-token-photo-login"
+      name: fullName,
+      user_id: userId,
     });
 
   } catch (error) {
     console.error("OCR Error:", error);
-    res.status(500).json({ message: "OCR failed to process image." });
+
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
+
+    return res.status(500).json({
+      status: "error",
+      message: "OCR failed to process the image.",
+    });
   }
 });
 

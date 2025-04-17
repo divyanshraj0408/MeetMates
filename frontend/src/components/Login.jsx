@@ -13,6 +13,9 @@ function Login({ onStart, setToken = () => {} }) {
   const [isImageLoginSuccess, setIsImageLoginSuccess] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [generatedUserId, setGeneratedUserId] = useState("");
+  const [postCardPassword, setPostCardPassword] = useState("");
+  const [isPostCardSignup, setIsPostCardSignup] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -31,19 +34,28 @@ function Login({ onStart, setToken = () => {} }) {
     );
     const payload = JSON.parse(jsonPayload);
     const googleEmail = payload.email;
-
     onStart(googleEmail, withVideo);
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
 
+    if (!email.endsWith("@adgitmdelhi.ac.in")) {
+      alert("Only @adgitmdelhi.ac.in email addresses are allowed.");
+      return;
+    }
+
     const endpoint = isSignup
       ? "http://localhost:3001/api/auth/signup"
       : "http://localhost:3001/api/auth/login";
 
     try {
-      const res = await axios.post(endpoint, { email, password }, {
+      const loginEmail = email.includes("@") ? email : `${email}@adgitmdelhi.ac.in`;
+
+      const res = await axios.post(endpoint, {
+        email: loginEmail,
+        password,
+      }, {
         headers: { "Content-Type": "application/json" }
       });
 
@@ -58,11 +70,7 @@ function Login({ onStart, setToken = () => {} }) {
         alert(res.data.msg || "Success");
       }
     } catch (err) {
-      alert(
-        err.response?.data?.msg ||
-        err.response?.data?.error ||
-        "Server error"
-      );
+      alert(err.response?.data?.msg || err.response?.data?.error || "Server error");
     }
   };
 
@@ -81,10 +89,14 @@ function Login({ onStart, setToken = () => {} }) {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      alert(res.data.message);
-      setToken(res.data.token);
-      setIsImageLoginSuccess(true);
-      onStart("photo_user", withVideo);
+      const userId = res.data.user_id;
+      if (userId) {
+        setGeneratedUserId(userId);
+        setIsPostCardSignup(true);
+        setIsImageLoginSuccess(true);
+      } else {
+        alert("User ID generation failed.");
+      }
     } catch (err) {
       alert("Image login failed: " + (err.response?.data?.message || "Unknown error"));
     } finally {
@@ -104,14 +116,14 @@ function Login({ onStart, setToken = () => {} }) {
         {/* Google Sign-In */}
         <div id="google-signin-btn" className="google-sdk-button" />
 
-        {/* Email/Password Auth */}
-        {!isImageLoginSuccess && (
+        {/* Email/Password Login */}
+        {!isImageLoginSuccess && !isPostCardSignup && (
           <>
             <div className="or-separator">OR</div>
             <form onSubmit={handleFormSubmit}>
               <input
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Enter your institutional email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -123,7 +135,6 @@ function Login({ onStart, setToken = () => {} }) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-
               <label className="checkbox-label">
                 <input
                   type="checkbox"
@@ -132,11 +143,9 @@ function Login({ onStart, setToken = () => {} }) {
                 />
                 <span className="checkbox-text">Enable video chat</span>
               </label>
-
               <button type="submit">
                 {isSignup ? "Signup" : "Login"} & Start Chatting
               </button>
-
               <div
                 onClick={() => setIsSignup(!isSignup)}
                 className="toggle-link"
@@ -148,7 +157,7 @@ function Login({ onStart, setToken = () => {} }) {
           </>
         )}
 
-        {/* Hidden file input */}
+        {/* Hidden File Upload */}
         <input
           type="file"
           ref={fileInputRef}
@@ -157,7 +166,7 @@ function Login({ onStart, setToken = () => {} }) {
           style={{ display: "none" }}
         />
 
-        {/* Image Preview Box */}
+        {/* Image Preview */}
         {selectedImage && (
           <div style={{ marginTop: "20px", textAlign: "center" }}>
             <img
@@ -171,13 +180,65 @@ function Login({ onStart, setToken = () => {} }) {
                 borderRadius: "6px",
               }}
             />
-            {loading && (
-              <div className="loader" style={{ marginTop: "10px" }} />
-            )}
+            {loading && <div className="loader" style={{ marginTop: "10px" }} />}
           </div>
         )}
 
-        {/* Button to trigger upload */}
+        {/* Generated user_id & password setup */}
+        {isPostCardSignup && (
+          <div style={{ marginTop: "20px" }}>
+            <h4>Your generated User ID:</h4>
+            <code style={{ fontSize: "16px", display: "block", marginBottom: "10px" }}>
+              {generatedUserId}
+            </code>
+            <input
+              type="password"
+              placeholder="Set your password"
+              value={postCardPassword}
+              onChange={(e) => setPostCardPassword(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginBottom: "10px",
+                borderRadius: "6px",
+                border: "1px solid #ccc"
+              }}
+            />
+            <button
+              className="submit-button"
+              onClick={async () => {
+                if (postCardPassword.length < 6) {
+                  alert("Password must be at least 6 characters.");
+                  return;
+                }
+                try {
+                  await axios.post("http://localhost:3001/api/auth/signup", {
+                    email: `${generatedUserId}@adgitmdelhi.ac.in`,
+                    password: postCardPassword,
+                  });
+
+                  alert("Signup successful. Please login using your User ID.");
+                  
+                  // ✅ Reset and switch to login view
+                  setIsPostCardSignup(false);
+                  setIsSignup(false);
+                  setEmail(`${generatedUserId}@adgitmdelhi.ac.in`);
+                  setPassword("");
+                  setSelectedImage(null);
+                  setGeneratedUserId("");
+                  setPostCardPassword("");
+                  setIsImageLoginSuccess(false);
+                } catch (err) {
+                  alert(err.response?.data?.msg || "Signup failed.");
+                }
+              }}
+            >
+              Complete Signup
+            </button>
+          </div>
+        )}
+
+        {/* Upload Trigger */}
         <div style={{ marginTop: "24px" }}>
           <button className="submit-button" onClick={handleIDUploadClick}>
             Login with College ID Card
