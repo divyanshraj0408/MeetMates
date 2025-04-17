@@ -3,9 +3,10 @@ import axios from "axios";
 import "./login.css";
 import { renderGoogleButton } from "../googleAuth.js";
 
-const CLIENT_ID = "629929963829-5hbepdf9rrvtq529r246t65fahrm24r5.apps.googleusercontent.com";
 
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 function Login({ onStart, setToken = () => {} }) {
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [withVideo, setWithVideo] = useState(true);
@@ -243,7 +244,9 @@ function Login({ onStart, setToken = () => {} }) {
           <button className="submit-button" onClick={handleIDUploadClick}>
             Login with College ID Card
           </button>
+
         </div>
+
       </div>
     </div>
   );
