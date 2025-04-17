@@ -1,251 +1,197 @@
-import { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import "./login.css";
-import { renderGoogleButton } from "../googleAuth.js";
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const cors = require("cors");
+const { v4: uuidv4 } = require("uuid");
+const mongoose = require("mongoose");
+const authRoutes = require("./routes/auth");
+const imageAuthRoute = require("./routes/imageAuth");
+require("dotenv").config();
 
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; // Uses environment variable for flexibility
+const app = express();
+const server = http.createServer(app);
 
-function Login({ onStart, setToken = () => {} }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [withVideo, setWithVideo] = useState(true);
-  const [isSignup, setIsSignup] = useState(false);
-  const [isImageLoginSuccess, setIsImageLoginSuccess] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [generatedUserId, setGeneratedUserId] = useState("");
-  const [postCardPassword, setPostCardPassword] = useState("");
-  const [isPostCardSignup, setIsPostCardSignup] = useState(false);
-  const fileInputRef = useRef(null);
+// CORS Setup
+const CLIENT_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 
-  useEffect(() => {
-    renderGoogleButton("google-signin-btn", CLIENT_ID, handleGoogleResponse);
-  }, []);
+app.use(
+  cors({
+    origin: CLIENT_ORIGIN,
+    credentials: true,
+  })
+);
 
-  const handleGoogleResponse = (response) => {
-    const jwt = response.credential;
-    const base64Url = jwt.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    const payload = JSON.parse(jsonPayload);
-    const googleEmail = payload.email;
-    onStart(googleEmail, withVideo);
-  };
+// JSON body parsing
+app.use(express.json());
 
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
+// API Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/auth", imageAuthRoute);
 
-    if (!email.endsWith("@adgitmdelhi.ac.in")) {
-      alert("Only @adgitmdelhi.ac.in email addresses are allowed.");
-      return;
+// MongoDB Connection
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
+
+// Socket.IO Setup
+const io = new Server(server, {
+  cors: {
+    origin: CLIENT_ORIGIN,
+    methods: ["GET", "POST"],
+  },
+});
+
+let waitingUsers = [];
+let videoEnabledUsers = new Set();
+let chatPairs = {};
+
+io.on("connection", (socket) => {
+  console.log("New user connected:", socket.id);
+
+  socket.on("findChat", (collegeEmail, withVideo = false) => {
+    if (chatPairs[socket.id]) {
+      const partner = chatPairs[socket.id].partner;
+      const room = chatPairs[socket.id].room;
+      io.to(partner).emit("partnerLeft");
+      delete chatPairs[socket.id];
+      delete chatPairs[partner];
     }
 
-    const endpoint = isSignup
-      ? "http://localhost:3001/api/auth/signup"
-      : "http://localhost:3001/api/auth/login";
+    waitingUsers.push(socket.id);
+    withVideo
+      ? videoEnabledUsers.add(socket.id)
+      : videoEnabledUsers.delete(socket.id);
+    socket.emit("waiting");
+    matchUsers();
+  });
 
-    try {
-      const loginEmail = email.includes("@") ? email : `${email}@adgitmdelhi.ac.in`;
-
-      const res = await axios.post(endpoint, {
-        email: loginEmail,
-        password,
-      }, {
-        headers: { "Content-Type": "application/json" }
+  socket.on("sendMessage", (message) => {
+    if (chatPairs[socket.id]) {
+      io.to(chatPairs[socket.id].room).emit("message", {
+        sender: socket.id,
+        text: message,
       });
-
-      const token = res.data.token || res.data?.data?.token;
-
-      if (token) {
-        localStorage.setItem("token", token);
-        setToken(token);
-        alert(`${isSignup ? "Signup" : "Login"} successful`);
-        onStart(email, withVideo);
-      } else {
-        alert(res.data.msg || "Success");
-      }
-    } catch (err) {
-      alert(err.response?.data?.msg || err.response?.data?.error || "Server error");
     }
-  };
+  });
 
-  const handleImageLogin = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  socket.on("next", () => {
+    if (chatPairs[socket.id]) {
+      const partner = chatPairs[socket.id].partner;
+      const room = chatPairs[socket.id].room;
 
-    setSelectedImage(URL.createObjectURL(file));
-    setLoading(true);
+      io.to(partner).emit("partnerLeft");
+      socket.leave(room);
+      io.sockets.sockets.get(partner)?.leave(room);
 
-    const formData = new FormData();
-    formData.append("image", file);
+      delete chatPairs[socket.id];
+      delete chatPairs[partner];
 
-    try {
-      const res = await axios.post("http://localhost:3001/api/auth/image-login", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      const userId = res.data.user_id;
-      if (userId) {
-        setGeneratedUserId(userId);
-        setIsPostCardSignup(true);
-        setIsImageLoginSuccess(true);
-      } else {
-        alert("User ID generation failed.");
-      }
-    } catch (err) {
-      alert("Image login failed: " + (err.response?.data?.message || "Unknown error"));
-    } finally {
-      setLoading(false);
+      waitingUsers.push(socket.id);
+      socket.emit("waiting");
+      matchUsers();
     }
-  };
+  });
 
-  const handleIDUploadClick = () => {
-    fileInputRef.current?.click();
-  };
+  // WebRTC Signaling
+  socket.on("webrtc-offer", (data) => {
+    if (chatPairs[socket.id]) {
+      io.to(chatPairs[socket.id].partner).emit("webrtc-offer", data);
+    }
+  });
 
-  return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2>{isSignup ? "Signup" : "Login"} to MeetMates</h2>
+  socket.on("webrtc-answer", (data) => {
+    if (chatPairs[socket.id]) {
+      io.to(chatPairs[socket.id].partner).emit("webrtc-answer", data);
+    }
+  });
 
-        {/* Google Sign-In */}
-        <div id="google-signin-btn" className="google-sdk-button" />
+  socket.on("ice-candidate", (data) => {
+    if (chatPairs[socket.id]) {
+      io.to(chatPairs[socket.id].partner).emit("ice-candidate", data);
+    }
+  });
 
-        {/* Email/Password Login */}
-        {!isImageLoginSuccess && !isPostCardSignup && (
-          <>
-            <div className="or-separator">OR</div>
-            <form onSubmit={handleFormSubmit}>
-              <input
-                type="email"
-                placeholder="Enter your institutional email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <input
-                type="password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={withVideo}
-                  onChange={() => setWithVideo(!withVideo)}
-                />
-                <span className="checkbox-text">Enable video chat</span>
-              </label>
-              <button type="submit">
-                {isSignup ? "Signup" : "Login"} & Start Chatting
-              </button>
-              <div
-                onClick={() => setIsSignup(!isSignup)}
-                className="toggle-link"
-                style={{ marginTop: "10px", cursor: "pointer", color: "blue" }}
-              >
-                {isSignup ? "Already registered? Login" : "New user? Signup"}
-              </div>
-            </form>
-          </>
-        )}
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+    waitingUsers = waitingUsers.filter((id) => id !== socket.id);
+    videoEnabledUsers.delete(socket.id);
 
-        {/* Hidden File Upload */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          accept="image/*"
-          onChange={handleImageLogin}
-          style={{ display: "none" }}
-        />
+    if (chatPairs[socket.id]) {
+      const partner = chatPairs[socket.id].partner;
+      io.to(partner).emit("partnerLeft");
+      delete chatPairs[socket.id];
+      delete chatPairs[partner];
+    }
+  });
+});
 
-        {/* Image Preview */}
-        {selectedImage && (
-          <div style={{ marginTop: "20px", textAlign: "center" }}>
-            <img
-              src={selectedImage}
-              alt="Selected ID"
-              style={{
-                width: "100%",
-                maxHeight: "200px",
-                objectFit: "contain",
-                border: "2px solid #000",
-                borderRadius: "6px",
-              }}
-            />
-            {loading && <div className="loader" style={{ marginTop: "10px" }} />}
-          </div>
-        )}
-
-        {/* Generated user_id & password setup */}
-        {isPostCardSignup && (
-          <div style={{ marginTop: "20px" }}>
-            <h4>Your generated User ID:</h4>
-            <code style={{ fontSize: "16px", display: "block", marginBottom: "10px" }}>
-              {generatedUserId}
-            </code>
-            <input
-              type="password"
-              placeholder="Set your password"
-              value={postCardPassword}
-              onChange={(e) => setPostCardPassword(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px",
-                marginBottom: "10px",
-                borderRadius: "6px",
-                border: "1px solid #ccc"
-              }}
-            />
-            <button
-              className="submit-button"
-              onClick={async () => {
-                if (postCardPassword.length < 6) {
-                  alert("Password must be at least 6 characters.");
-                  return;
-                }
-                try {
-                  await axios.post("http://localhost:3001/api/auth/signup", {
-                    email: `${generatedUserId}@adgitmdelhi.ac.in`,
-                    password: postCardPassword,
-                  });
-
-                  alert("Signup successful. Please login using your User ID.");
-
-                  setIsPostCardSignup(false);
-                  setIsSignup(false);
-                  setEmail(`${generatedUserId}@adgitmdelhi.ac.in`);
-                  setPassword("");
-                  setSelectedImage(null);
-                  setGeneratedUserId("");
-                  setPostCardPassword("");
-                  setIsImageLoginSuccess(false);
-                } catch (err) {
-                  alert(err.response?.data?.msg || "Signup failed.");
-                }
-              }}
-            >
-              Complete Signup
-            </button>
-          </div>
-        )}
-
-        {/* Upload Trigger */}
-        <div style={{ marginTop: "24px" }}>
-          <button className="submit-button" onClick={handleIDUploadClick}>
-            Login with College ID Card
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+// Matching logic
+function matchUsers() {
+  matchUsersByVideoPreference();
+  if (waitingUsers.length >= 2) {
+    matchRemainingUsers();
+  }
 }
 
-export default Login;
+function matchUsersByVideoPreference() {
+  const videoUsers = waitingUsers.filter((id) => videoEnabledUsers.has(id));
+  const textOnlyUsers = waitingUsers.filter((id) => !videoEnabledUsers.has(id));
+
+  while (videoUsers.length >= 2) {
+    const user1 = videoUsers.shift();
+    const user2 = videoUsers.shift();
+    waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
+    createChatPair(user1, user2, true);
+  }
+
+  while (textOnlyUsers.length >= 2) {
+    const user1 = textOnlyUsers.shift();
+    const user2 = textOnlyUsers.shift();
+    waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
+    createChatPair(user1, user2, false);
+  }
+}
+
+function matchRemainingUsers() {
+  while (waitingUsers.length >= 2) {
+    const user1 = waitingUsers.shift();
+    const user2 = waitingUsers.shift();
+    const enableVideo =
+      videoEnabledUsers.has(user1) || videoEnabledUsers.has(user2);
+    createChatPair(user1, user2, enableVideo);
+  }
+}
+
+function createChatPair(user1, user2, withVideo) {
+  const socket1 = io.sockets.sockets.get(user1);
+  const socket2 = io.sockets.sockets.get(user2);
+
+  if (!socket1 || !socket2) {
+    if (socket1) waitingUsers.push(user1);
+    if (socket2) waitingUsers.push(user2);
+    return;
+  }
+
+  const roomId = uuidv4();
+
+  chatPairs[user1] = { partner: user2, room: roomId, video: withVideo };
+  chatPairs[user2] = { partner: user1, room: roomId, video: withVideo };
+
+  socket1.join(roomId);
+  socket2.join(roomId);
+
+  io.to(user1).emit("chatStart", { withVideo });
+  io.to(user2).emit("chatStart", { withVideo });
+
+  console.log(`Matched ${user1} and ${user2} in room ${roomId}, video: ${withVideo}`);
+}
+
+// Server listener
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
