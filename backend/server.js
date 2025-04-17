@@ -5,36 +5,39 @@ const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
 const mongoose = require("mongoose");
 const authRoutes = require("./routes/auth");
-const imageAuthRoute = require("./routes/imageAuth"); // ✅ New image login route
+const imageAuthRoute = require("./routes/imageAuth");
 require("dotenv").config();
 
 const app = express();
 const server = http.createServer(app);
 
-// ✅ CORS Setup
+// CORS Setup
 const CLIENT_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 
-app.use(cors({
-  origin: CLIENT_ORIGIN,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: CLIENT_ORIGIN,
+    credentials: true,
+  })
+);
 
-// ✅ JSON body parsing
+// JSON body parsing
 app.use(express.json());
 
-// ✅ API Routes
+// API Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/auth", imageAuthRoute); // ✅ Mount image-based login route
+app.use("/api/auth", imageAuthRoute);
 
-// ✅ MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("✅ MongoDB connected"))
-.catch((err) => console.error("❌ MongoDB connection error:", err));
+// MongoDB Connection
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
-// ✅ Socket.IO Setup
+// Socket.IO Setup
 const io = new Server(server, {
   cors: {
     origin: CLIENT_ORIGIN,
@@ -47,7 +50,7 @@ let videoEnabledUsers = new Set();
 let chatPairs = {};
 
 io.on("connection", (socket) => {
-  console.log("🟢 New user connected:", socket.id);
+  console.log("New user connected:", socket.id);
 
   socket.on("findChat", (collegeEmail, withVideo = false) => {
     if (chatPairs[socket.id]) {
@@ -59,7 +62,9 @@ io.on("connection", (socket) => {
     }
 
     waitingUsers.push(socket.id);
-    withVideo ? videoEnabledUsers.add(socket.id) : videoEnabledUsers.delete(socket.id);
+    withVideo
+      ? videoEnabledUsers.add(socket.id)
+      : videoEnabledUsers.delete(socket.id);
     socket.emit("waiting");
     matchUsers();
   });
@@ -91,7 +96,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // ✅ WebRTC Signaling
+  // WebRTC Signaling
   socket.on("webrtc-offer", (data) => {
     if (chatPairs[socket.id]) {
       io.to(chatPairs[socket.id].partner).emit("webrtc-offer", data);
@@ -111,7 +116,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("🔴 User disconnected:", socket.id);
+    console.log("User disconnected:", socket.id);
     waitingUsers = waitingUsers.filter((id) => id !== socket.id);
     videoEnabledUsers.delete(socket.id);
 
@@ -124,7 +129,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// ✅ Matching logic
+// Matching logic
 function matchUsers() {
   matchUsersByVideoPreference();
   if (waitingUsers.length >= 2) {
@@ -155,7 +160,8 @@ function matchRemainingUsers() {
   while (waitingUsers.length >= 2) {
     const user1 = waitingUsers.shift();
     const user2 = waitingUsers.shift();
-    const enableVideo = videoEnabledUsers.has(user1) || videoEnabledUsers.has(user2);
+    const enableVideo =
+      videoEnabledUsers.has(user1) || videoEnabledUsers.has(user2);
     createChatPair(user1, user2, enableVideo);
   }
 }
@@ -181,11 +187,11 @@ function createChatPair(user1, user2, withVideo) {
   io.to(user1).emit("chatStart", { withVideo });
   io.to(user2).emit("chatStart", { withVideo });
 
-  console.log(`✅ Matched ${user1} and ${user2} in room ${roomId}, video: ${withVideo}`);
+  console.log(`Matched ${user1} and ${user2} in room ${roomId}, video: ${withVideo}`);
 }
 
-// ✅ Server listener
+// Server listener
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });

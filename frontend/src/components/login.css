@@ -185,6 +185,7 @@ button[type="submit"]:active,
   box-shadow: 6px 6px 0px #000;
 }
 
+
 .google-sdk-button::before {
   content: "";
   position: absolute;
@@ -201,6 +202,11 @@ button[type="submit"]:active,
 
 .google-sdk-button:hover::before {
   opacity: 1;
+}
+.google-button:hover {
+  transform: translateX(-3px) translateY(-3px);
+  box-shadow: 5px 5px 0px #000;
+
 }
 
 .google-sdk-button > div {
@@ -241,7 +247,17 @@ button[type="submit"]:active,
     background-position: 0% 50%;
   }
 }
-
+#google-signin-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+.google-signin-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
 @media (max-width: 480px) {
   .login-card {
     padding: 25px;
