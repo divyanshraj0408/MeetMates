@@ -4,8 +4,11 @@ const path = require("path");
 const fs = require("fs");
 const Tesseract = require("tesseract.js");
 
-const router = express.Router();
+const router = express.Router(); // <-- this is essential
+
 const upload = multer({ dest: "uploads/" });
+
+module.exports = router;
 
 router.post("/image-login", upload.single("image"), async (req, res) => {
   if (!req.file) {
@@ -25,8 +28,9 @@ router.post("/image-login", upload.single("image"), async (req, res) => {
 
     console.log("Extracted OCR Text:\n", extractedText);
 
-    // Match Enrollment Number
-    const enrollmentMatch = extractedText.match(/Enrollment No\.?\s*[:\-]?\s*(\d{11})/i);
+    const enrollmentMatch = extractedText.match(
+      /Enrollment No\.?\s*[:\-]?\s*(\d{11})/i
+    );
     const enrollmentNo = enrollmentMatch?.[1];
 
     if (!enrollmentNo) {
@@ -36,9 +40,24 @@ router.post("/image-login", upload.single("image"), async (req, res) => {
       });
     }
 
-    // Match Name (more flexible + multiline support)
-    const nameMatch = extractedText.match(/Name\s*[:\-]?\s*([A-Z][A-Z ]{2,})/i);
-    const fullName = nameMatch?.[1]?.trim();
+    let fullName = null;
+    const lines = extractedText
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    for (let i = 0; i < lines.length; i++) {
+      if (/^Name\s*[:\-]?\s*$/i.test(lines[i]) && i + 1 < lines.length) {
+        fullName = lines[i + 1].replace(/[^A-Z\s]/gi, "").trim(); // remove junk chars
+        break;
+      } else if (/^Name\s*[:\-]?\s*(.+)$/i.test(lines[i])) {
+        fullName = lines[i]
+          .match(/^Name\s*[:\-]?\s*(.+)$/i)[1]
+          .replace(/[^A-Z\s]/gi, "")
+          .trim();
+        break;
+      }
+    }
 
     if (!fullName) {
       return res.status(400).json({
@@ -47,8 +66,9 @@ router.post("/image-login", upload.single("image"), async (req, res) => {
       });
     }
 
-    // ✅ Remove all spaces and extract first 5 characters
-    const userId = fullName.replace(/\s+/g, "").substring(0, 5);
+    const userId =
+      fullName.replace(/\s+/g, "").substring(0, 5) +
+      enrollmentNo.substring(0, 5);
 
     return res.json({
       status: "success",
@@ -57,7 +77,6 @@ router.post("/image-login", upload.single("image"), async (req, res) => {
       name: fullName,
       user_id: userId,
     });
-
   } catch (error) {
     console.error("OCR Error:", error);
 
@@ -71,5 +90,3 @@ router.post("/image-login", upload.single("image"), async (req, res) => {
     });
   }
 });
-
-module.exports = router;

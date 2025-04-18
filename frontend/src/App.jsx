@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
+import HomePage from "./components/HomePage";
 import Login from "./components/Login";
 import WaitingRoom from "./components/WaitingRoom";
 import ChatRoom from "./components/ChatRoom";
 import socket from "./Socket";
-// import { toast } from "@/components/ui/use-toast";
 import "./App.css";
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState("login");
+  const [currentScreen, setCurrentScreen] = useState("home");
   const [messages, setMessages] = useState([]);
   const [mediaPermission, setMediaPermission] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(true);
@@ -110,12 +110,12 @@ function App() {
   // Render the appropriate screen
   const renderScreen = () => {
     switch (currentScreen) {
+      case "home":
+        return <HomePage onGoToLogin={() => setCurrentScreen("login")} />;
       case "login":
         return <Login onStart={handleStartChat} />;
-
       case "waiting":
         return <WaitingRoom />;
-
       case "chat":
         return (
           <ChatRoom
@@ -129,21 +129,13 @@ function App() {
         );
 
       default:
-        return <Login onStart={handleStartChat} />;
+        return <HomePage />;
     }
   };
 
   return (
     <div className="app-container">
-      <header>
-        <h1>College Chat Roulette</h1>
-      </header>
-
       <main>{renderScreen()}</main>
-
-      <footer>
-        <p>Created for our college community</p>
-      </footer>
     </div>
   );
 }

@@ -1,0 +1,75 @@
+.home-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  /* font-family: "Arial", sans-serif; */
+}
+.navbar {
+  background-color: #ffea00; /* Yellow */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+}
+
+.menu-icon {
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.logo {
+  font-weight: bold;
+  font-size: 2.2rem;
+}
+
+.login-btn {
+  background-color: #c09eff;
+  color: white;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: "Rethink Sans", sans-serif;
+}
+
+/* Main Content */
+.main-content {
+  background-color: #0099ff; /* Blue */
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-grow: 1;
+}
+
+.main-content h1 {
+  font-size: 5em;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  letter-spacing: -3px;
+}
+
+.main-content p {
+  margin-bottom: 2rem;
+  font-size: 2rem;
+  font-family: "Rethink Sans", sans-serif;
+}
+
+/* CTA Button */
+.wild-btn {
+  background-color: #ff5599;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.6rem;
+  border-radius: 25px;
+  width: 200px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-family: "Rethink Sans", sans-serif;
+}
+
+.wild-btn:hover {
+  background-color: #e04482;
+}

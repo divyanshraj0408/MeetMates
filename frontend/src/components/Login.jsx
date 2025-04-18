@@ -3,10 +3,8 @@ import axios from "axios";
 import "./login.css";
 import { renderGoogleButton } from "../googleAuth.js";
 
-
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 function Login({ onStart, setToken = () => {} }) {
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [withVideo, setWithVideo] = useState(true);
@@ -51,14 +49,20 @@ function Login({ onStart, setToken = () => {} }) {
       : "http://localhost:3001/api/auth/login";
 
     try {
-      const loginEmail = email.includes("@") ? email : `${email}@adgitmdelhi.ac.in`;
+      const loginEmail = email.includes("@")
+        ? email
+        : `${email}@adgitmdelhi.ac.in`;
 
-      const res = await axios.post(endpoint, {
-        email: loginEmail,
-        password,
-      }, {
-        headers: { "Content-Type": "application/json" }
-      });
+      const res = await axios.post(
+        endpoint,
+        {
+          email: loginEmail,
+          password,
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
       const token = res.data.token || res.data?.data?.token;
 
@@ -71,7 +75,9 @@ function Login({ onStart, setToken = () => {} }) {
         alert(res.data.msg || "Success");
       }
     } catch (err) {
-      alert(err.response?.data?.msg || err.response?.data?.error || "Server error");
+      alert(
+        err.response?.data?.msg || err.response?.data?.error || "Server error"
+      );
     }
   };
 
@@ -86,9 +92,13 @@ function Login({ onStart, setToken = () => {} }) {
     formData.append("image", file);
 
     try {
-      const res = await axios.post("http://localhost:3001/api/auth/image-login", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await axios.post(
+        "http://localhost:3001/api/auth/image-login",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
       const userId = res.data.user_id;
       if (userId) {
@@ -99,7 +109,10 @@ function Login({ onStart, setToken = () => {} }) {
         alert("User ID generation failed.");
       }
     } catch (err) {
-      alert("Image login failed: " + (err.response?.data?.message || "Unknown error"));
+      alert(
+        "Image login failed: " +
+          (err.response?.data?.message || "Unknown error")
+      );
     } finally {
       setLoading(false);
     }
@@ -121,32 +134,38 @@ function Login({ onStart, setToken = () => {} }) {
         {!isImageLoginSuccess && !isPostCardSignup && (
           <>
             <div className="or-separator">OR</div>
+
             <form onSubmit={handleFormSubmit}>
-              <input
-                type="email"
-                placeholder="Enter your institutional email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <input
-                type="password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={withVideo}
-                  onChange={() => setWithVideo(!withVideo)}
-                />
-                <span className="checkbox-text">Enable video chat</span>
-              </label>
-              <button type="submit">
-                {isSignup ? "Signup" : "Login"} & Start Chatting
-              </button>
+              {!isSignup && (
+                <>
+                  <input
+                    type="email"
+                    placeholder="Enter your institutional email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <input
+                    type="password"
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={withVideo}
+                      onChange={() => setWithVideo(!withVideo)}
+                    />
+                    <span className="checkbox-text">Enable video chat</span>
+                  </label>
+                  <button type="submit" className="login-btn">
+                    Continue
+                  </button>
+                </>
+              )}
+
               <div
                 onClick={() => setIsSignup(!isSignup)}
                 className="toggle-link"
@@ -181,7 +200,9 @@ function Login({ onStart, setToken = () => {} }) {
                 borderRadius: "6px",
               }}
             />
-            {loading && <div className="loader" style={{ marginTop: "10px" }} />}
+            {loading && (
+              <div className="loader" style={{ marginTop: "10px" }} />
+            )}
           </div>
         )}
 
@@ -189,7 +210,13 @@ function Login({ onStart, setToken = () => {} }) {
         {isPostCardSignup && (
           <div style={{ marginTop: "20px" }}>
             <h4>Your generated User ID:</h4>
-            <code style={{ fontSize: "16px", display: "block", marginBottom: "10px" }}>
+            <code
+              style={{
+                fontSize: "16px",
+                display: "block",
+                marginBottom: "10px",
+              }}
+            >
               {generatedUserId}
             </code>
             <input
@@ -202,7 +229,7 @@ function Login({ onStart, setToken = () => {} }) {
                 padding: "10px",
                 marginBottom: "10px",
                 borderRadius: "6px",
-                border: "1px solid #ccc"
+                border: "1px solid #ccc",
               }}
             />
             <button
@@ -219,7 +246,7 @@ function Login({ onStart, setToken = () => {} }) {
                   });
 
                   alert("Signup successful. Please login using your User ID.");
-                  
+
                   // ✅ Reset and switch to login view
                   setIsPostCardSignup(false);
                   setIsSignup(false);
@@ -240,13 +267,18 @@ function Login({ onStart, setToken = () => {} }) {
         )}
 
         {/* Upload Trigger */}
-        <div style={{ marginTop: "24px" }}>
+        <div
+          style={{ marginTop: "24px", display: isSignup ? "block" : "none" }}
+        >
           <button className="submit-button" onClick={handleIDUploadClick}>
             Login with College ID Card
           </button>
-
         </div>
-
+        {/* <p>
+          Your name and photo are displayed to users who invite you to a
+          workspace using your email. By continuing, you acknowledge that you
+          understand and agree to the Terms & Conditions and Privacy Policy
+        </p> */}
       </div>
     </div>
   );
