@@ -6,38 +6,53 @@ const { v4: uuidv4 } = require("uuid");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 
+dotenv.config();
+
 const authRoutes = require("./routes/auth.js");
 const imageAuthRoute = require("./routes/imageAuth.js");
-
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
-// CORS Setup
-const CLIENT_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
-app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
+// Allow local + production origins
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://www.meetmates.space"
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.error("Blocked by CORS:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
-// Routes
+// Connect MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log("MongoDB connected"))
+.catch((err) => console.error("MongoDB connection error:", err));
+
+// Register routes
 app.use("/api/auth", authRoutes);
 app.use("/api/auth", imageAuthRoute);
 
-// MongoDB Connection
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
-
-// Socket.IO Setup
+// Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: CLIENT_ORIGIN,
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
-  },
+    credentials: true
+  }
 });
 
 let waitingUsers = [];
@@ -50,7 +65,6 @@ io.on("connection", (socket) => {
   socket.on("findChat", (collegeEmail, withVideo = false) => {
     if (chatPairs[socket.id]) {
       const partner = chatPairs[socket.id].partner;
-      const room = chatPairs[socket.id].room;
       io.to(partner).emit("partnerLeft");
       delete chatPairs[socket.id];
       delete chatPairs[partner];
@@ -60,6 +74,7 @@ io.on("connection", (socket) => {
     withVideo
       ? videoEnabledUsers.add(socket.id)
       : videoEnabledUsers.delete(socket.id);
+
     socket.emit("waiting");
     matchUsers();
   });
@@ -68,7 +83,7 @@ io.on("connection", (socket) => {
     if (chatPairs[socket.id]) {
       io.to(chatPairs[socket.id].room).emit("message", {
         sender: socket.id,
-        text: message,
+        text: message
       });
     }
   });
@@ -88,7 +103,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // WebRTC Signaling
   socket.on("webrtc-offer", (data) => {
     if (chatPairs[socket.id]) {
       io.to(chatPairs[socket.id].partner).emit("webrtc-offer", data);
@@ -120,7 +134,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// Matching logic
 function matchUsers() {
   matchUsersByVideoPreference();
   if (waitingUsers.length >= 2) {
@@ -151,8 +164,7 @@ function matchRemainingUsers() {
   while (waitingUsers.length >= 2) {
     const user1 = waitingUsers.shift();
     const user2 = waitingUsers.shift();
-    const enableVideo =
-      videoEnabledUsers.has(user1) || videoEnabledUsers.has(user2);
+    const enableVideo = videoEnabledUsers.has(user1) || videoEnabledUsers.has(user2);
     createChatPair(user1, user2, enableVideo);
   }
 }
@@ -181,8 +193,7 @@ function createChatPair(user1, user2, withVideo) {
   console.log(`Matched ${user1} and ${user2} in room ${roomId}, video: ${withVideo}`);
 }
 
-// Start Server
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
