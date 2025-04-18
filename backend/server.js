@@ -4,27 +4,22 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
 const mongoose = require("mongoose");
-const authRoutes = require("./routes/auth");
-const imageAuthRoute = require("./routes/imageAuth");
-require("dotenv").config();
+const dotenv = require("dotenv");
+
+const authRoutes = require("./routes/auth.js");
+const imageAuthRoute = require("./routes/imageAuth.js");
+
+dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
 // CORS Setup
 const CLIENT_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
-
-app.use(
-  cors({
-    origin: CLIENT_ORIGIN,
-    credentials: true,
-  })
-);
-
-// JSON body parsing
+app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
 app.use(express.json());
 
-// API Routes
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/auth", imageAuthRoute);
 
@@ -82,14 +77,11 @@ io.on("connection", (socket) => {
     if (chatPairs[socket.id]) {
       const partner = chatPairs[socket.id].partner;
       const room = chatPairs[socket.id].room;
-
       io.to(partner).emit("partnerLeft");
       socket.leave(room);
       io.sockets.sockets.get(partner)?.leave(room);
-
       delete chatPairs[socket.id];
       delete chatPairs[partner];
-
       waitingUsers.push(socket.id);
       socket.emit("waiting");
       matchUsers();
@@ -119,7 +111,6 @@ io.on("connection", (socket) => {
     console.log("User disconnected:", socket.id);
     waitingUsers = waitingUsers.filter((id) => id !== socket.id);
     videoEnabledUsers.delete(socket.id);
-
     if (chatPairs[socket.id]) {
       const partner = chatPairs[socket.id].partner;
       io.to(partner).emit("partnerLeft");
@@ -190,8 +181,8 @@ function createChatPair(user1, user2, withVideo) {
   console.log(`Matched ${user1} and ${user2} in room ${roomId}, video: ${withVideo}`);
 }
 
-// Server listener
+// Start Server
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
