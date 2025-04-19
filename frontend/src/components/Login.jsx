@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "./login.css";
 import { renderGoogleButton } from "../googleAuth.js";
+import Navbar from "./Navbar.jsx";
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -110,159 +111,156 @@ function Login({ onStart, setToken = () => {} }) {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2>{isSignup ? "Signup" : "Login"} to MeetMates</h2>
-
-        {/* Google Login */}
-        <div id="google-signin-btn" className="google-sdk-button" />
-
-        {/* Standard Login */}
-        {!isImageLoginSuccess && !isPostCardSignup && (
-          <>
-            <div className="or-separator">OR</div>
-            {!isSignup && (
-              <form onSubmit={handleFormSubmit}>
-                <input
-                  type="email"
-                  placeholder="Enter email or user ID"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <input
-                  type="password"
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <label className="checkbox-label">
+    <>
+      <Navbar />
+      <div className="login-container">
+        <div className="login-card">
+          <h2>{isSignup ? "Signup" : "Login"} to MeetMates</h2>
+          {/* Google Login */}
+          <div id="google-signin-btn" className="google-sdk-button" />
+          {/* Standard Login */}
+          {!isImageLoginSuccess && !isPostCardSignup && (
+            <>
+              <div className="or-separator">OR</div>
+              {!isSignup && (
+                <form onSubmit={handleFormSubmit}>
                   <input
-                    type="checkbox"
-                    checked={withVideo}
-                    onChange={() => setWithVideo(!withVideo)}
+                    type="email"
+                    placeholder="Enter email or user ID"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
                   />
-                  <span className="checkbox-text">Enable video chat</span>
-                </label>
-                <button type="submit" className="login-btn">
-                  Continue
-                </button>
-              </form>
-            )}
-          </>
-        )}
-
-        {/* Hidden Upload */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          accept="image/*"
-          onChange={handleImageLogin}
-          style={{ display: "none" }}
-        />
-
-        {/* Image Preview */}
-        {selectedImage && (
-          <div style={{ marginTop: "20px", textAlign: "center" }}>
-            <img
-              src={selectedImage}
-              alt="Selected ID"
-              style={{
-                width: "100%",
-                maxHeight: "200px",
-                objectFit: "contain",
-                border: "2px solid #000",
-                borderRadius: "6px",
-              }}
-            />
-            {loading && (
-              <div className="loader" style={{ marginTop: "10px" }} />
-            )}
-          </div>
-        )}
-
-        {/* Generated ID flow */}
-        {isPostCardSignup && (
-          <div style={{ marginTop: "20px" }}>
-            <h4>Your generated User ID:</h4>
-            <code
-              style={{
-                fontSize: "16px",
-                display: "block",
-                marginBottom: "10px",
-              }}
-            >
-              {generatedUserId}
-            </code>
-            <input
-              type="password"
-              placeholder="Set your password"
-              value={postCardPassword}
-              onChange={(e) => setPostCardPassword(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px",
-                marginBottom: "10px",
-                borderRadius: "6px",
-                border: "1px solid #ccc",
-              }}
-            />
-            <button
-              className="submit-button"
-              onClick={async () => {
-                if (postCardPassword.length < 6) {
-                  alert("Password must be at least 6 characters.");
-                  return;
-                }
-                try {
-                  await axios.post("http://localhost:3001/api/auth/signup", {
-                    email: generatedUserId,
-                    password: postCardPassword,
-                  });
-
-                  alert("Signup successful. Please login using your User ID.");
-
-                  // Reset state and switch to login
-                  setEmail(generatedUserId);
-                  setPassword("");
-                  setIsSignup(false);
-                  setIsPostCardSignup(false);
-                  setIsImageLoginSuccess(false);
-                  setSelectedImage(null);
-                  setGeneratedUserId("");
-                  setPostCardPassword("");
-                } catch (err) {
-                  alert(err.response?.data?.msg || "Signup failed.");
-                }
-              }}
-            >
-              Complete Signup
+                  <input
+                    type="password"
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={withVideo}
+                      onChange={() => setWithVideo(!withVideo)}
+                    />
+                    <span className="checkbox-text">Enable video chat</span>
+                  </label>
+                  <button type="submit" className="login-btn">
+                    Continue
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+          {/* Hidden Upload */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            onChange={handleImageLogin}
+            style={{ display: "none" }}
+          />
+          {/* Image Preview */}
+          {selectedImage && (
+            <div style={{ marginTop: "20px", textAlign: "center" }}>
+              <img
+                src={selectedImage}
+                alt="Selected ID"
+                style={{
+                  width: "100%",
+                  maxHeight: "200px",
+                  objectFit: "contain",
+                  border: "2px solid #000",
+                  borderRadius: "6px",
+                }}
+              />
+              {loading && (
+                <div className="loader" style={{ marginTop: "10px" }} />
+              )}
+            </div>
+          )}
+          {/* Generated ID flow */}
+          {isPostCardSignup && (
+            <div style={{ marginTop: "20px" }}>
+              <h4>Your generated User ID:</h4>
+              <code
+                style={{
+                  fontSize: "16px",
+                  display: "block",
+                  marginBottom: "10px",
+                }}
+              >
+                {generatedUserId}
+              </code>
+              <input
+                type="password"
+                placeholder="Set your password"
+                value={postCardPassword}
+                onChange={(e) => setPostCardPassword(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  marginBottom: "10px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                }}
+              />
+              <button
+                className="submit-button"
+                onClick={async () => {
+                  if (postCardPassword.length < 6) {
+                    alert("Password must be at least 6 characters.");
+                    return;
+                  }
+                  try {
+                    await axios.post("http://localhost:3001/api/auth/signup", {
+                      email: generatedUserId,
+                      password: postCardPassword,
+                    });
+                    alert(
+                      "Signup successful. Please login using your User ID."
+                    );
+                    // Reset state and switch to login
+                    setEmail(generatedUserId);
+                    setPassword("");
+                    setIsSignup(false);
+                    setIsPostCardSignup(false);
+                    setIsImageLoginSuccess(false);
+                    setSelectedImage(null);
+                    setGeneratedUserId("");
+                    setPostCardPassword("");
+                  } catch (err) {
+                    alert(err.response?.data?.msg || "Signup failed.");
+                  }
+                }}
+              >
+                Complete Signup
+              </button>
+            </div>
+          )}
+          {/* ID Upload Trigger */}
+          <div
+            style={{ marginTop: "24px", display: isSignup ? "block" : "none" }}
+          >
+            <button className="submit-button" onClick={handleIDUploadClick}>
+              Login with College ID Card
             </button>
           </div>
-        )}
-
-        {/* ID Upload Trigger */}
-        <div
-          style={{ marginTop: "24px", display: isSignup ? "block" : "none" }}
-        >
-          <button className="submit-button" onClick={handleIDUploadClick}>
-            Login with College ID Card
-          </button>
-        </div>
-        <div
-          onClick={() => setIsSignup(!isSignup)}
-          className="toggle-link"
-          style={{
-            marginTop: "10px",
-            cursor: "pointer",
-            color: "blue",
-          }}
-        >
-          {isSignup ? "Already registered? Login" : "New user? Signup"}
+          <div
+            onClick={() => setIsSignup(!isSignup)}
+            className="toggle-link"
+            style={{
+              marginTop: "10px",
+              cursor: "pointer",
+              color: "blue",
+            }}
+          >
+            {isSignup ? "Already registered? Login" : "New user? Signup"}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

@@ -1,16 +1,11 @@
 import "./homepage.css";
+import Navbar from "./Navbar";
 
 const HomePage = ({ onGoToLogin }) => {
   return (
     <>
+      <Navbar onGoToLogin={onGoToLogin} />
       <div className="home-page">
-        <header className="navbar">
-          <div className="menu-icon">☰</div>
-          <p className="logo">pingo</p>
-          <button className="login-btn" onClick={onGoToLogin}>
-            Log In
-          </button>
-        </header>
         <main className="main-content">
           <div className="container">
             <h1>
