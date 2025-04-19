@@ -155,7 +155,8 @@ function Login({ onStart, setToken = () => {} }) {
       <Navbar />
       <div className="login-container">
         <div className="login-card">
-          <h2>{isSignup ? "Signup" : "Login"} to MeetMates</h2>
+          <h1>{isSignup ? "Come Join" : "Welcome Back to"} the party!</h1>
+          <h2>{isSignup ? "Sign up" : "Login"} to your Pingo account</h2>
           {/* Google Login */}
           <div id="google-signin-btn" className="google-sdk-button" />
           {/* Standard Login */}
@@ -186,9 +187,9 @@ function Login({ onStart, setToken = () => {} }) {
                     />
                     <span className="checkbox-text">Enable video chat</span>
                   </label>
-                  <button type="submit" className="login-btn">
+                  <div type="submit" className="login-btn submit-button">
                     Continue
-                  </button>
+                  </div>
                 </form>
               )}
             </>

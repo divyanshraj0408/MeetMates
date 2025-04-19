@@ -16,16 +16,21 @@
   border-radius: 2px;
   padding: 40px;
   width: 100%;
-  max-width: 450px;
+  max-width: 500px;
   text-align: center;
 }
-
-h2 {
+.login-card h1 {
+  font-size: 2.3rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: #ff3f80;
+}
+.login-card h2 {
   margin-top: 0;
   margin-bottom: 30px;
   font-size: 1.8rem;
-  font-weight: 700;
-  color: #000;
+  font-weight: 500;
+  color: #9b71ff;
 }
 
 input[type="email"],
@@ -75,7 +80,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .login-btn {
-  width: 15rem;
+  /* width: 15rem; */
   font-size: 1.1rem;
 }
 button[type="submit"],
@@ -88,12 +93,6 @@ button[type="submit"],
   /* font-size: 1rem; */
   font-weight: 700;
   cursor: pointer;
-}
-
-button[type="submit"]:active,
-.submit-button:active {
-  transform: translateX(0) translateY(0);
-  box-shadow: none;
 }
 
 .toggle-link {
