@@ -187,7 +187,11 @@ function Login({ onStart, setToken = () => {} }) {
                     />
                     <span className="checkbox-text">Enable video chat</span>
                   </label>
-                  <div type="submit" className="login-btn submit-button">
+                  <div
+                    type="submit"
+                    className="login-btn submit-button"
+                    onClick={handleFormSubmit}
+                  >
                     Continue
                   </div>
                 </form>
