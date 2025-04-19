@@ -153,6 +153,54 @@ function Login({ onStart, setToken = () => {} }) {
               )}
             </>
           )}
+          {isSignup && !selectedImage && (
+            <>
+              <div
+                className="drop-zone"
+                onDragOver={(e) => e.preventDefault()}
+                onDragEnter={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files[0];
+                  if (file) {
+                    const fakeEvent = { target: { files: [file] } };
+                    handleImageLogin(fakeEvent);
+                  } else {
+                    alert("Please drop a valid image file.");
+                  }
+                }}
+                style={{
+                  border: "2px dashed #649BFF",
+                  padding: "20px",
+                  borderRadius: "20px",
+                  height: "173px",
+                  // width: "500px",
+                  textAlign: "center",
+                  color: "#666",
+                  backgroundColor: "#ffffff",
+                  backgroundImage: "url('pics/draganddrop.png')",
+                  backgroundSize: "initial",
+                  backgroundRepeat: "no-repeat",
+                  marginBottom: "20px",
+                }}
+              >
+                <p>Drag & drop your ID Card or click to browse files</p>
+                <p>(Only .pdf or .png files supported )</p>
+              </div>
+              <div
+                onClick={handleIDUploadClick}
+                className="submit-button"
+                style={{
+                  textAlign: "center",
+                  marginBottom: "10px",
+                  cursor: "pointer",
+                }}
+              >
+                Upload College ID Card (Click or Drag Below)
+              </div>
+            </>
+          )}
+
           {/* Hidden Upload */}
           <input
             type="file"
@@ -240,13 +288,13 @@ function Login({ onStart, setToken = () => {} }) {
             </div>
           )}
           {/* ID Upload Trigger */}
-          <div
+          {/* <div
             style={{ marginTop: "24px", display: isSignup ? "block" : "none" }}
           >
             <button className="submit-button" onClick={handleIDUploadClick}>
               Login with College ID Card
             </button>
-          </div>
+          </div> */}
           <div
             onClick={() => setIsSignup(!isSignup)}
             className="toggle-link"

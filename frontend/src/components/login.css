@@ -133,7 +133,17 @@ button[type="submit"]:active,
 .or-separator::after {
   right: 0;
 }
-
+.drop-zone {
+  background-position: 50% 20%;
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  font-size: 0.7em;
+  flex-direction: column;
+}
+.drop-zone p {
+  color: #5082dc;
+}
 @keyframes glow {
   0% {
     background-position: 0% 50%;
