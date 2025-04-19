@@ -5,7 +5,7 @@
   min-height: 100vh;
   padding: 20px;
   background-color: rgba(255, 255, 255, 0.5);
-  background-image: url("pics/login-bg-trans.png");
+  background-image: url("../assets/login-bg-trans.png");
   background-blend-mode: soft-light;
   background-size: cover;
   background-position: center;
@@ -140,6 +140,7 @@ button[type="submit"]:active,
   justify-content: end;
   font-size: 0.7em;
   flex-direction: column;
+  font-family: "Rethink Sans", sans-serif;
 }
 .drop-zone p {
   color: #5082dc;
