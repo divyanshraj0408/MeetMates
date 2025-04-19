@@ -15,32 +15,32 @@ const app = express();
 const server = http.createServer(app);
 
 // Allow local + production origins
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://www.meetmates.space"
-];
+const allowedOrigins = ["http://localhost:5173", "https://www.meetmates.space"];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.error("Blocked by CORS:", origin);
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.error("Blocked by CORS:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
 // Connect MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("MongoDB connected"))
-.catch((err) => console.error("MongoDB connection error:", err));
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Register routes
 app.use("/api/auth", authRoutes);
@@ -51,13 +51,15 @@ const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
     methods: ["GET", "POST"],
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
 let waitingUsers = [];
 let videoEnabledUsers = new Set();
 let chatPairs = {};
+// Track users who are ready for WebRTC connection
+let rtcReadyUsers = new Set();
 
 io.on("connection", (socket) => {
   console.log("New user connected:", socket.id);
@@ -83,7 +85,7 @@ io.on("connection", (socket) => {
     if (chatPairs[socket.id]) {
       io.to(chatPairs[socket.id].room).emit("message", {
         sender: socket.id,
-        text: message
+        text: message,
       });
     }
   });
@@ -103,21 +105,52 @@ io.on("connection", (socket) => {
     }
   });
 
+  // WebRTC Signaling Handlers
+  socket.on("ready-to-connect", () => {
+    // Store that this user is ready for WebRTC
+    rtcReadyUsers.add(socket.id);
+
+    // Check if partner exists and is ready
+    if (chatPairs[socket.id]) {
+      const partnerId = chatPairs[socket.id].partner;
+
+      // If both users are ready, let one of them create an offer
+      if (rtcReadyUsers.has(partnerId)) {
+        // Let the first user (lower socket ID) initiate to avoid both creating offers
+        if (socket.id < partnerId) {
+          socket.emit("create-offer");
+        }
+      }
+    }
+  });
+
   socket.on("webrtc-offer", (data) => {
     if (chatPairs[socket.id]) {
-      io.to(chatPairs[socket.id].partner).emit("webrtc-offer", data);
+      const partnerId = chatPairs[socket.id].partner;
+      io.to(partnerId).emit("webrtc-offer", {
+        offer: data.offer,
+        from: socket.id,
+      });
     }
   });
 
   socket.on("webrtc-answer", (data) => {
     if (chatPairs[socket.id]) {
-      io.to(chatPairs[socket.id].partner).emit("webrtc-answer", data);
+      const partnerId = chatPairs[socket.id].partner;
+      io.to(partnerId).emit("webrtc-answer", {
+        answer: data.answer,
+        from: socket.id,
+      });
     }
   });
 
   socket.on("ice-candidate", (data) => {
     if (chatPairs[socket.id]) {
-      io.to(chatPairs[socket.id].partner).emit("ice-candidate", data);
+      const partnerId = chatPairs[socket.id].partner;
+      io.to(partnerId).emit("ice-candidate", {
+        candidate: data.candidate,
+        from: socket.id,
+      });
     }
   });
 
@@ -125,6 +158,8 @@ io.on("connection", (socket) => {
     console.log("User disconnected:", socket.id);
     waitingUsers = waitingUsers.filter((id) => id !== socket.id);
     videoEnabledUsers.delete(socket.id);
+    rtcReadyUsers.delete(socket.id);
+
     if (chatPairs[socket.id]) {
       const partner = chatPairs[socket.id].partner;
       io.to(partner).emit("partnerLeft");
@@ -164,7 +199,8 @@ function matchRemainingUsers() {
   while (waitingUsers.length >= 2) {
     const user1 = waitingUsers.shift();
     const user2 = waitingUsers.shift();
-    const enableVideo = videoEnabledUsers.has(user1) || videoEnabledUsers.has(user2);
+    const enableVideo =
+      videoEnabledUsers.has(user1) || videoEnabledUsers.has(user2);
     createChatPair(user1, user2, enableVideo);
   }
 }
@@ -190,7 +226,9 @@ function createChatPair(user1, user2, withVideo) {
   io.to(user1).emit("chatStart", { withVideo });
   io.to(user2).emit("chatStart", { withVideo });
 
-  console.log(`Matched ${user1} and ${user2} in room ${roomId}, video: ${withVideo}`);
+  console.log(
+    `Matched ${user1} and ${user2} in room ${roomId}, video: ${withVideo}`
+  );
 }
 
 const PORT = process.env.PORT || 3001;
