@@ -73,37 +73,77 @@ function Login({ onStart, setToken = () => {} }) {
     const file = e.target.files[0];
     if (!file) return;
 
-    setSelectedImage(URL.createObjectURL(file));
     setLoading(true);
 
-    const formData = new FormData();
-    formData.append("image", file);
+    const img = new Image();
+    const reader = new FileReader();
 
-    try {
-      const res = await axios.post(
-        "http://localhost:3001/api/auth/image-login",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+    reader.onload = function (event) {
+      img.src = event.target.result;
+    };
 
-      const userId = res.data.user_id;
-      if (userId) {
-        setGeneratedUserId(userId);
-        setIsPostCardSignup(true);
-        setIsImageLoginSuccess(true);
-      } else {
-        alert("User ID generation failed.");
+    img.onload = async function () {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+
+      ctx.drawImage(img, 0, 0);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      // Convert to grayscale
+      for (let i = 0; i < data.length; i += 4) {
+        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        data[i] = avg; // Red
+        data[i + 1] = avg; // Green
+        data[i + 2] = avg; // Blue
+        // Alpha (data[i + 3]) remains unchanged
       }
-    } catch (err) {
-      alert(
-        "Image login failed: " +
-          (err.response?.data?.message || "Unknown error")
-      );
-    } finally {
-      setLoading(false);
-    }
+
+      ctx.putImageData(imageData, 0, 0);
+
+      // Convert canvas to Blob
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          alert("Failed to convert image.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("image", blob, "converted-id.png");
+
+        setSelectedImage(canvas.toDataURL("image/png")); // Preview
+        try {
+          const res = await axios.post(
+            "http://localhost:3001/api/auth/image-login",
+            formData,
+            {
+              headers: { "Content-Type": "multipart/form-data" },
+            }
+          );
+
+          const userId = res.data.user_id;
+          if (userId) {
+            setGeneratedUserId(userId);
+            setIsPostCardSignup(true);
+            setIsImageLoginSuccess(true);
+          } else {
+            alert("User ID generation failed.");
+          }
+        } catch (err) {
+          alert(
+            "Image login failed: " +
+              (err.response?.data?.message || "Unknown error")
+          );
+        } finally {
+          setLoading(false);
+        }
+      }, "image/png");
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const handleIDUploadClick = () => {
@@ -184,7 +224,9 @@ function Login({ onStart, setToken = () => {} }) {
                   marginBottom: "20px",
                 }}
               >
-                <p>Drag & drop your ID Card or click to browse files</p>
+                <p>
+                  Drag & drop your ID Card or click button below to browse files
+                </p>
                 <p>(Only .pdf or .png files supported )</p>
               </div>
               <div

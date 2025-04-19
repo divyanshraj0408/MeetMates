@@ -9,7 +9,9 @@ const upload = multer({ dest: "uploads/" });
 
 router.post("/image-login", upload.single("image"), async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ status: "error", message: "No image uploaded." });
+    return res
+      .status(400)
+      .json({ status: "error", message: "No image uploaded." });
   }
 
   const imagePath = path.join(__dirname, "..", req.file.path);
@@ -32,8 +34,23 @@ router.post("/image-login", upload.single("image"), async (req, res) => {
       });
     }
 
-    // Use enrollment number directly as user_id
-    const userId = enrollmentNo;
+    // Extract name (first two capitalized words)
+    const nameMatch = extractedText.match(/Name\s*:\s*(.*)/i);
+
+    if (!nameMatch) {
+      return res.status(400).json({
+        status: "error",
+        message: "Name not found or unreadable on the ID card.",
+      });
+    }
+
+    let name = nameMatch?.[1]
+      ?.trim()
+      .split(" ")
+      .slice(0, 2)
+      .join(".")
+      .toLowerCase(); // e.g., sagar.kumar
+    const userId = `${name}${enrollmentNo.slice(0, 3)}@adgitmdelhi.ac.in`;
 
     return res.json({
       status: "success",
@@ -41,11 +58,12 @@ router.post("/image-login", upload.single("image"), async (req, res) => {
       user_id: userId,
       enrollment_no: enrollmentNo,
     });
-
   } catch (err) {
     console.error("OCR Error:", err);
     if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
-    return res.status(500).json({ status: "error", message: "OCR failed to process image." });
+    return res
+      .status(500)
+      .json({ status: "error", message: "OCR failed to process image." });
   }
 });
 
