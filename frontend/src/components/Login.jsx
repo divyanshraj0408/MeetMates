@@ -98,7 +98,7 @@ function Login({ onStart, setToken = () => {} }) {
     } catch (err) {
       alert(
         "Image login failed: " +
-        (err.response?.data?.message || "Unknown error")
+          (err.response?.data?.message || "Unknown error")
       );
     } finally {
       setLoading(false);
@@ -121,40 +121,35 @@ function Login({ onStart, setToken = () => {} }) {
         {!isImageLoginSuccess && !isPostCardSignup && (
           <>
             <div className="or-separator">OR</div>
-            <form onSubmit={handleFormSubmit}>
-              <input
-                type="text"
-                placeholder="Enter email or user ID"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <input
-                type="password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <label className="checkbox-label">
+            {!isSignup && (
+              <form onSubmit={handleFormSubmit}>
                 <input
-                  type="checkbox"
-                  checked={withVideo}
-                  onChange={() => setWithVideo(!withVideo)}
+                  type="email"
+                  placeholder="Enter email or user ID"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
-                <span className="checkbox-text">Enable video chat</span>
-              </label>
-              <button type="submit" className="login-btn">
-                Continue
-              </button>
-              <div
-                onClick={() => setIsSignup(!isSignup)}
-                className="toggle-link"
-                style={{ marginTop: "10px", cursor: "pointer", color: "blue" }}
-              >
-                {isSignup ? "Already registered? Login" : "New user? Signup"}
-              </div>
-            </form>
+                <input
+                  type="password"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={withVideo}
+                    onChange={() => setWithVideo(!withVideo)}
+                  />
+                  <span className="checkbox-text">Enable video chat</span>
+                </label>
+                <button type="submit" className="login-btn">
+                  Continue
+                </button>
+              </form>
+            )}
           </>
         )}
 
@@ -181,7 +176,9 @@ function Login({ onStart, setToken = () => {} }) {
                 borderRadius: "6px",
               }}
             />
-            {loading && <div className="loader" style={{ marginTop: "10px" }} />}
+            {loading && (
+              <div className="loader" style={{ marginTop: "10px" }} />
+            )}
           </div>
         )}
 
@@ -252,6 +249,17 @@ function Login({ onStart, setToken = () => {} }) {
           <button className="submit-button" onClick={handleIDUploadClick}>
             Login with College ID Card
           </button>
+        </div>
+        <div
+          onClick={() => setIsSignup(!isSignup)}
+          className="toggle-link"
+          style={{
+            marginTop: "10px",
+            cursor: "pointer",
+            color: "blue",
+          }}
+        >
+          {isSignup ? "Already registered? Login" : "New user? Signup"}
         </div>
       </div>
     </div>
