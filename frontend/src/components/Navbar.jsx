@@ -1,9 +1,15 @@
 import "./Navbar.css";
-const Navbar = ({ onGoToLogin }) => {
+const Navbar = ({ onGoToLogin, goBack, doDisplay }) => {
   return (
     <>
       <header className="navbar">
-        <div className="menu-icon">☰</div>
+        <button
+          className="menu-icon"
+          onClick={goBack}
+          style={{ display: `${doDisplay}` }}
+        >
+          {"<-"}
+        </button>
         <p className="logo">pingo</p>
         <button className="cta-btn" onClick={onGoToLogin}>
           Log In

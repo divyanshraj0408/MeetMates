@@ -111,9 +111,21 @@ function App() {
   const renderScreen = () => {
     switch (currentScreen) {
       case "home":
-        return <HomePage onGoToLogin={() => setCurrentScreen("login")} />;
+        return (
+          <HomePage
+            onGoToLogin={() => setCurrentScreen("login")}
+            goBack={() => setCurrentScreen("home")}
+            doDisplay={"none"}
+          />
+        );
       case "login":
-        return <Login onStart={handleStartChat} />;
+        return (
+          <Login
+            onStart={handleStartChat}
+            goBack={() => setCurrentScreen("home")}
+            doDisplay={"block"}
+          />
+        );
       case "waiting":
         return <WaitingRoom />;
       case "chat":
