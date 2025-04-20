@@ -22,7 +22,7 @@ const Navbar = ({ onGoToLogin, goBack, doBackDisplay, doLoginDisplay }) => {
         >
           Log In
         </button>
-        <div style={{ display: `${!doLoginDisplay}` }}></div>
+        {doLoginDisplay === "none" && <div></div>}
       </header>
     </>
   );
