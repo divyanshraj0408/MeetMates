@@ -1,12 +1,12 @@
 import "./Navbar.css";
-const Navbar = ({ onGoToLogin, goBack, doDisplay }) => {
+const Navbar = ({ onGoToLogin, goBack, doBackDisplay, doLoginDisplay }) => {
   return (
     <>
       <header className="navbar">
         <div
           className="menu-icon"
           onClick={goBack}
-          style={{ display: `${doDisplay}` }}
+          style={{ display: `${doBackDisplay}` }}
         >
           {
             <span className="material-symbols-outlined">
@@ -15,9 +15,14 @@ const Navbar = ({ onGoToLogin, goBack, doDisplay }) => {
           }
         </div>
         <p className="logo">pingo</p>
-        <button className="cta-btn" onClick={onGoToLogin}>
+        <button
+          className="cta-btn"
+          onClick={onGoToLogin}
+          style={{ display: `${doLoginDisplay}` }}
+        >
           Log In
         </button>
+        <div style={{ display: `${!doLoginDisplay}` }}></div>
       </header>
     </>
   );

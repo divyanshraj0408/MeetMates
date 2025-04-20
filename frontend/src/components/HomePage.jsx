@@ -1,10 +1,15 @@
 import "./homepage.css";
 import Navbar from "./Navbar";
 
-const HomePage = ({ onGoToLogin, goBack, doDisplay }) => {
+const HomePage = ({ onGoToLogin, goBack, doBackDisplay, doLoginDisplay }) => {
   return (
     <>
-      <Navbar onGoToLogin={onGoToLogin} goBack={goBack} doDisplay={doDisplay} />
+      <Navbar
+        onGoToLogin={onGoToLogin}
+        goBack={goBack}
+        doBackDisplay={doBackDisplay}
+        doLoginDisplay={doLoginDisplay}
+      />
       <div className="home-page">
         <main className="main-content">
           <div className="container">

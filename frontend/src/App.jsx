@@ -115,7 +115,8 @@ function App() {
           <HomePage
             onGoToLogin={() => setCurrentScreen("login")}
             goBack={() => setCurrentScreen("home")}
-            doDisplay={"none"}
+            doBackDisplay={"none"}
+            doLoginDisplay={"block"}
           />
         );
       case "login":
@@ -123,7 +124,8 @@ function App() {
           <Login
             onStart={handleStartChat}
             goBack={() => setCurrentScreen("home")}
-            doDisplay={"block"}
+            doBackDisplay={"block"}
+            doLoginDisplay={"none"}
           />
         );
       case "waiting":

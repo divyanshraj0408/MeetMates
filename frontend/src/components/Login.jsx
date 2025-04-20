@@ -6,7 +6,13 @@ import Navbar from "./Navbar.jsx";
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-function Login({ onStart, setToken = () => {}, goBack, doDisplay }) {
+function Login({
+  onStart,
+  setToken = () => {},
+  goBack,
+  doBackDisplay,
+  doLoginDisplay,
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [withVideo, setWithVideo] = useState(true);
@@ -152,7 +158,11 @@ function Login({ onStart, setToken = () => {}, goBack, doDisplay }) {
 
   return (
     <>
-      <Navbar goBack={goBack} doDisplay={doDisplay} />
+      <Navbar
+        goBack={goBack}
+        doBackDisplay={doBackDisplay}
+        doLoginDisplay={doLoginDisplay}
+      />
       <div className="login-container">
         <div className="login-card">
           <div className="login-header">
