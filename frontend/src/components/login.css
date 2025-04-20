@@ -17,6 +17,9 @@
   padding: 40px;
   width: 100%;
   max-width: 500px;
+  /* text-align: center; */
+}
+.login-header {
   text-align: center;
 }
 .login-card h1 {
@@ -82,6 +85,7 @@ input[type="checkbox"]:checked::after {
 .login-btn {
   /* width: 15rem; */
   font-size: 1.1rem;
+  text-align: center;
 }
 button[type="submit"],
 .submit-button {
@@ -131,6 +135,13 @@ button[type="submit"],
 
 .or-separator::after {
   right: 0;
+}
+.cta-text {
+  /* font-size: 0.8rem; */
+  color: #9b71ff;
+  font-family: "Rethink Sans", sans-serif;
+  font-weight: 500;
+  /* margin-top: 20px; */
 }
 .drop-zone {
   background-position: 50% 20%;

@@ -155,14 +155,25 @@ function Login({ onStart, setToken = () => {} }) {
       <Navbar />
       <div className="login-container">
         <div className="login-card">
-          <h1>{isSignup ? "Come Join" : "Welcome Back to"} the party!</h1>
-          <h2>{isSignup ? "Sign up" : "Login"} to your Pingo account</h2>
+          <div className="login-header">
+            <h1>{isSignup ? "Come Join" : "Welcome Back to"} the party!</h1>
+            <h2>{isSignup ? "Sign up" : "Login"} to your Pingo account</h2>
+          </div>
           {/* Google Login */}
           <div id="google-signin-btn" className="google-sdk-button" />
           {/* Standard Login */}
           {!isImageLoginSuccess && !isPostCardSignup && (
             <>
               <div className="or-separator">OR</div>
+              {!isSignup ? (
+                <p className="cta-text" style={{ marginBottom: "20px" }}>
+                  Login using your College email
+                </p>
+              ) : (
+                <p className="cta-text" style={{ marginBottom: "20px" }}>
+                  Drop your College ID Card
+                </p>
+              )}
               {!isSignup && (
                 <form onSubmit={handleFormSubmit}>
                   <input
