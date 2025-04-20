@@ -3,17 +3,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  text-align: center;
   padding: 1rem 1.5rem;
 }
 
 .menu-icon {
-  font-size: 1.5rem;
+  font-size: 2rem;
   cursor: pointer;
 }
 
 .logo {
   font-weight: bold;
-  font-size: 2.2rem;
+  font-size: 2rem;
 }
 
 .cta-btn {
@@ -21,7 +22,7 @@
   color: white;
   border: none;
   padding: 0.4rem 1rem;
-  border-radius: 20px;
+  border-radius: 10px;
   cursor: pointer;
   font-family: "Rethink Sans", sans-serif;
   width: 7rem;
