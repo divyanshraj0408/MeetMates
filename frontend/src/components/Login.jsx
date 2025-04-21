@@ -372,7 +372,9 @@ function Login({
               color: "blue",
             }}
           >
-            {isSignup ? "Already registered? Login" : "New user? Signup"}
+            <p style={{ fontFamily: `"Rethink Sans", sans-serif` }}>
+              {isSignup ? "Already registered? Login" : "New user? Signup"}
+            </p>
           </div>
         </div>
       </div>
