@@ -322,8 +322,8 @@ function Login({
                   border: "1px solid #ccc",
                 }}
               />
-              <button
-                className="submit-button"
+              <div
+                className="submit-button login-btn"
                 onClick={async () => {
                   if (postCardPassword.length < 6) {
                     alert("Password must be at least 6 characters.");
@@ -352,7 +352,7 @@ function Login({
                 }}
               >
                 Complete Signup
-              </button>
+              </div>
             </div>
           )}
           {/* ID Upload Trigger */}
