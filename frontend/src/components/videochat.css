@@ -2,6 +2,7 @@
   padding: 20px;
   border-bottom: 3px solid var(--border);
   height: 100vh;
+  /* overflow: hidden; */
   display: flex;
   flex-direction: column;
 }
@@ -25,13 +26,16 @@
 .video-grid > :nth-child(2) {
   grid-row: 1 / 2;
   grid-column: 2 / 3;
-  height: 50%;
+  /* height: 50%; */
 }
 
 .video-grid > :nth-child(3) {
   grid-row: 2 / 3;
   grid-column: 2 / 3;
+  
+  /* min-height:; */
   max-height: 100%;
+  min-height: 100%;
 }
 
 @media (max-width: 768px) {
@@ -117,7 +121,10 @@
 
 /* Text Chat Section */
 .text-chat-section {
-  border: 2px solid var(--border);
+  border: 4px solid  #0099FF;
+  background-color: #1E1E1E;
+  /* border-image: linear-gradient(to right, #0099FF 0%, #E6F7FF 100%); */
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -131,6 +138,9 @@
   flex-direction: column;
   gap: 10px;
   height: 100%;
+  scroll-behavior:smooth;
+  /* scrollbar-width: thin; */
+  scrollbar-color: transparent transparent;
 }
 
 .message {
@@ -142,17 +152,21 @@
 
 .user-message {
   align-self: flex-end;
-  background-color: var(--primary);
+  background-color: #FF6B81;
+
   color: var(--primary-foreground);
-  border: 3px solid var(--border);
+  /* border: 3px solid var(--border); */
   margin-left: auto;
+  border-radius: 8px  8px 0 8px ;
+
 }
 
 .partner-message {
   align-self: flex-start;
-  background-color: var(--secondary);
+    background-color: #4DA8DA;
   color: var(--secondary-foreground);
-  border: 3px solid var(--border);
+  /* border: 3px solid var(--border); */
+  border-radius: 0 8px 8px 8px ;
   margin-right: auto;
 }
 
@@ -205,15 +219,16 @@
 .message-form {
   display: flex;
   padding: 15px;
-  border-top: 3px solid var(--border);
-  background-color: white;
+  /* border-top: 3px solid var(--border); */
+  /* background-color: white; */
 }
 
 .message-form textarea {
   flex: 1;
+  border-radius: 8px;
   height: 60px;
   padding: 12px;
-  border: 3px solid var(--border);
+  border: 3px solid #C2A8FF;
   font-family: "Space Grotesk", sans-serif;
   font-size: 1rem;
   resize: none;

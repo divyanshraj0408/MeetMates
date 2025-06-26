@@ -28,12 +28,12 @@ function ChatRoom({
 
   return (
     <div className={`chat-container ${videoEnabled ? "with-video" : ""}`}>
-      {/* <div className="chat-header">
+      <div className="chat-header">
         <h2>You're now chatting with a student</h2>
         <button onClick={onNext} className="next-button">
           Next
         </button>
-      </div> */}
+      </div>
 
       <div className="chat-body">
         {videoEnabled && (
