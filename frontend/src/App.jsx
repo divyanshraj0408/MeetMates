@@ -22,7 +22,7 @@ function App() {
       setCurrentScreen("chat");
       setMessages([
         {
-          text: "You are now connected! Say hello!",
+          // text: "You are now connected! Say hello!",
           type: "system",
         },
       ]);

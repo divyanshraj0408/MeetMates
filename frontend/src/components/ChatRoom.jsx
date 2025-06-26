@@ -37,34 +37,36 @@ function ChatRoom({
 
       <div className="chat-body">
         {videoEnabled && (
-          <VideoChat socketId={socketId} toggleVideo={toggleVideo} />
+          <div>
+            <VideoChat socketId={socketId} toggleVideo={toggleVideo} />
+            <div className="text-chat-section">
+              <div className="messages-container">
+                {messages.map((msg, index) => (
+                  <div key={index} className={`message ${msg.type}-message`}>
+                    {msg.text}
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+              <form onSubmit={handleSubmit} className="message-form">
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }
+                  }}
+                />
+                <button type="submit">Send</button>
+              </form>
+            </div>
+          </div>
         )}
 
-        <div className="text-chat-section">
-          <div className="messages-container">
-            {messages.map((msg, index) => (
-              <div key={index} className={`message ${msg.type}-message`}>
-                {msg.text}
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
 
-          <form onSubmit={handleSubmit} className="message-form">
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type a message..."
-              onKeyPress={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e);
-                }
-              }}
-            />
-            <button type="submit">Send</button>
-          </form>
-        </div>
       </div>
     </div>
   );

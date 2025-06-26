@@ -329,7 +329,9 @@ function VideoChat({ socketId, toggleVideo }) {
   };
 
   return (
+
     <div className="video-chat-container">
+
       <div className="video-grid">
         <div className="video-box remote-video">
           <video ref={remoteVideoRef} autoPlay playsInline />
@@ -358,35 +360,34 @@ function VideoChat({ socketId, toggleVideo }) {
           )}
         </div>
 
-        <div className="video-box local-video">
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted // Always mute local video to prevent echo
-          />
-          <div className="video-label">You</div>
-        </div>
-      </div>
-
-      <div className="video-controls">
-        <button
-          className={`control-btn ${isMuted ? "control-off" : ""}`}
-          onClick={toggleMute}
-        >
-          {isMuted ? "🔇" : "🔊"}
-        </button>
-
-        <button
-          className={`control-btn ${isCameraOff ? "control-off" : ""}`}
-          onClick={toggleCamera}
-        >
-          {isCameraOff ? "📵" : "📹"}
-        </button>
-
-        <button className="control-btn" onClick={toggleVideo}>
-          Hide Video
-        </button>
+          <div>
+            <div className="video-box local-video">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted // Always mute local video to prevent echo
+              />
+              <div className="video-label">You</div>
+              <div className="video-controls">
+                <button
+                  className={`control-btn ${isMuted ? "control-off" : ""}`}
+                  onClick={toggleMute}
+                >
+                  {isMuted ? "🔇" : "🔊"}
+                </button>
+                <button
+                  className={`control-btn ${isCameraOff ? "control-off" : ""}`}
+                  onClick={toggleCamera}
+                >
+                  {isCameraOff ? "📵" : "📹"}
+                </button>
+                <button className="control-btn" onClick={toggleVideo}>
+                  Hide Video
+                </button>
+              </div>
+            </div>
+          </div>
       </div>
     </div>
   );
