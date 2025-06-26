@@ -2,11 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import socket from "../Socket";
 import "./videochat.css";
 
-function VideoChat({ socketId, toggleVideo }) {
+function VideoChat({ socketId, toggleVideo,messages,onSendMessage }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
+
+  const [message, setMessage] = useState("");
+  const messagesEndRef = useRef(null);
+
 
   // Keep track of whether we've already processed offers/answers
   const processedSignalsRef = useRef(new Set());
@@ -327,6 +331,14 @@ function VideoChat({ socketId, toggleVideo }) {
     createPeerConnection();
     socket.emit("ready-to-connect");
   };
+    const handleSubmit = (e) => {
+    e.preventDefault();
+    if (message.trim()) {
+      onSendMessage(message);
+      setMessage("");
+    }
+  };
+
 
   return (
 
@@ -388,6 +400,30 @@ function VideoChat({ socketId, toggleVideo }) {
               </div>
             </div>
           </div>
+           <div className="text-chat-section">
+         <div className="messages-container">
+                {messages.map((msg, index) => (
+                  <div key={index} className={`message ${msg.type}-message`}>
+                    {msg.text}
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+               <form onSubmit={handleSubmit} className="message-form">
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }
+                  }}
+                />
+                <button type="submit">Send</button>
+              </form>
+              </div>
       </div>
     </div>
   );
