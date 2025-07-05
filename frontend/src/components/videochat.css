@@ -9,7 +9,7 @@
 
 .video-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
+  grid-template-columns: 1.4fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 15px;
   margin-bottom: 15px;
@@ -26,14 +26,13 @@
 .video-grid > :nth-child(2) {
   grid-row: 1 / 2;
   grid-column: 2 / 3;
-  /* height: 50%; */
+  /* max-height: 40%; */
 }
 
 .video-grid > :nth-child(3) {
   grid-row: 2 / 3;
   grid-column: 2 / 3;
   
-  /* min-height:; */
   max-height: 100%;
   min-height: 100%;
 }
@@ -131,6 +130,7 @@
 }
 
 .messages-container {
+  /* background-image: url("/pics/chat-bg.png"); */
   flex: 1;
   padding: 20px;
   overflow-y: auto;
@@ -227,7 +227,8 @@
   flex: 1;
   border-radius: 8px;
   height: 60px;
-  padding: 12px;
+  padding-top: 18px;
+  padding-left: 12px;
   border: 3px solid #C2A8FF;
   font-family: "Space Grotesk", sans-serif;
   font-size: 1rem;
@@ -239,8 +240,8 @@
 }
 
 .send-button {
-  background-color: var(--primary);
-  color: var(--primary-foreground);
+  background-color: #C2A8FF!important;
+  color: black !important;
   border: 3px solid var(--border);
   padding: 0 20px;
   margin-left: 10px;

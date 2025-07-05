@@ -5,11 +5,13 @@ const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+const jwt = require("jsonwebtoken");
 
 dotenv.config();
 
 const authRoutes = require("./routes/auth.js");
 const imageAuthRoute = require("./routes/imageAuth.js");
+const { authMiddleware, optionalAuth } = require("./middleware/auth.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -42,9 +44,68 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-// Register routes
+// Register routes (auth routes don't need middleware since they handle their own auth)
 app.use("/api/auth", authRoutes);
 app.use("/api/auth", imageAuthRoute);
+
+// Protected routes example (add these as you create more features)
+app.get("/api/profile", authMiddleware, (req, res) => {
+  res.json({
+    success: true,
+    user: {
+      id: req.user._id,
+      email: req.user.email,
+      name: req.user.name,
+      profilePicture: req.user.profilePicture,
+      isGoogleUser: req.user.isGoogleUser
+    }
+  });
+});
+
+// Optional: Add a route to verify token validity
+app.get("/api/verify-token", authMiddleware, (req, res) => {
+  res.json({
+    success: true,
+    message: "Token is valid",
+    user: {
+      id: req.user._id,
+      email: req.user.email,
+      name: req.user.name
+    }
+  });
+});
+
+// Socket.IO Authentication Middleware
+const socketAuthMiddleware = async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token || socket.handshake.headers.authorization;
+    
+    if (!token) {
+      return next(new Error("Authentication token required"));
+    }
+
+    // Remove 'Bearer ' prefix if present
+    const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
+    
+    const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET);
+    
+    // You could fetch user from database here if needed
+    // const user = await User.findById(decoded.userId);
+    
+    socket.userId = decoded.userId;
+    socket.userEmail = decoded.email;
+    socket.isGoogleUser = decoded.isGoogleUser;
+    
+    next();
+  } catch (error) {
+    console.error("Socket authentication error:", error);
+    next(new Error("Authentication failed"));
+  }
+};
+
+// Apply authentication to socket connections
+// Comment out the line below if you want to allow unauthenticated socket connections
+// io.use(socketAuthMiddleware);
 
 // Socket.IO setup
 const io = new Server(server, {
@@ -60,11 +121,27 @@ let videoEnabledUsers = new Set();
 let chatPairs = {};
 // Track users who are ready for WebRTC connection
 let rtcReadyUsers = new Set();
+// Track authenticated users
+let authenticatedUsers = new Map(); // socketId -> user info
 
 io.on("connection", (socket) => {
   console.log("New user connected:", socket.id);
+  
+  // Store user info if authenticated
+  if (socket.userId) {
+    authenticatedUsers.set(socket.id, {
+      userId: socket.userId,
+      email: socket.userEmail,
+      isGoogleUser: socket.isGoogleUser
+    });
+    console.log(`Authenticated user connected: ${socket.userEmail}`);
+  }
 
+  // Enhanced findChat with authentication info
   socket.on("findChat", (collegeEmail, withVideo = false) => {
+    // Use authenticated email if available, otherwise use provided email
+    const userEmail = socket.userEmail || collegeEmail;
+    
     if (chatPairs[socket.id]) {
       const partner = chatPairs[socket.id].partner;
       io.to(partner).emit("partnerLeft");
@@ -78,14 +155,18 @@ io.on("connection", (socket) => {
       : videoEnabledUsers.delete(socket.id);
 
     socket.emit("waiting");
+    console.log(`User ${userEmail} looking for chat, video: ${withVideo}`);
     matchUsers();
   });
 
   socket.on("sendMessage", (message) => {
     if (chatPairs[socket.id]) {
+      const userInfo = authenticatedUsers.get(socket.id);
       io.to(chatPairs[socket.id].room).emit("message", {
         sender: socket.id,
         text: message,
+        senderEmail: userInfo?.email || 'Anonymous',
+        timestamp: new Date().toISOString()
       });
     }
   });
@@ -107,16 +188,12 @@ io.on("connection", (socket) => {
 
   // WebRTC Signaling Handlers
   socket.on("ready-to-connect", () => {
-    // Store that this user is ready for WebRTC
     rtcReadyUsers.add(socket.id);
 
-    // Check if partner exists and is ready
     if (chatPairs[socket.id]) {
       const partnerId = chatPairs[socket.id].partner;
 
-      // If both users are ready, let one of them create an offer
       if (rtcReadyUsers.has(partnerId)) {
-        // Let the first user (lower socket ID) initiate to avoid both creating offers
         if (socket.id < partnerId) {
           socket.emit("create-offer");
         }
@@ -156,6 +233,9 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
+    
+    // Clean up user data
+    authenticatedUsers.delete(socket.id);
     waitingUsers = waitingUsers.filter((id) => id !== socket.id);
     videoEnabledUsers.delete(socket.id);
     rtcReadyUsers.delete(socket.id);
@@ -226,8 +306,11 @@ function createChatPair(user1, user2, withVideo) {
   io.to(user1).emit("chatStart", { withVideo });
   io.to(user2).emit("chatStart", { withVideo });
 
+  const user1Info = authenticatedUsers.get(user1);
+  const user2Info = authenticatedUsers.get(user2);
+  
   console.log(
-    `Matched ${user1} and ${user2} in room ${roomId}, video: ${withVideo}`
+    `Matched ${user1Info?.email || user1} and ${user2Info?.email || user2} in room ${roomId}, video: ${withVideo}`
   );
 }
 

@@ -421,7 +421,7 @@ function VideoChat({ socketId, toggleVideo,messages,onSendMessage }) {
                     }
                   }}
                 />
-                <button type="submit">Shoot</button>
+                <button type="submit" className="send-button">Shoot</button>
               </form>
               </div>
       </div>

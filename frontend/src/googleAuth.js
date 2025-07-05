@@ -11,7 +11,9 @@ export const renderGoogleButton = (elementId, clientId, callback) => {
       theme: "outline",
       size: "large",
       type: "standard",
-      width: 300,
+      // width: "1000px",
+      shape: "pill",
+      text:"continue_with",
     }
   );
 };

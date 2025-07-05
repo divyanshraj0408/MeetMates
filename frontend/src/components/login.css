@@ -170,8 +170,15 @@ button[type="submit"],
   display: flex;
   justify-content: center;
   align-items: center;
+  /* width: 1000px !important; */
+}
+#google-signin-btn > div {
+  width: 100% !important;
 }
 
+#google-signin-btn iframe {
+  width: 100% !important;
+}
 @media (max-width: 480px) {
   .login-card {
     padding: 25px;

@@ -29,23 +29,49 @@ function Login({
     renderGoogleButton("google-signin-btn", CLIENT_ID, handleGoogleResponse);
   }, []);
 
-  const handleGoogleResponse = (response) => {
-    const jwt = response.credential;
-    const base64Url = jwt.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    const payload = JSON.parse(jsonPayload);
-    const googleEmail = payload.email;
-    onStart(googleEmail, withVideo);
+  const handleGoogleResponse = async (response) => {
+    try {
+      setLoading(true);
+      
+      // Send the Google JWT token to your backend for verification and user creation/login
+      const res = await axios.post(
+        "http://localhost:3001/api/auth/google-login",
+        { 
+          credential: response.credential,
+          withVideo: withVideo 
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      const { token, user, message } = res.data;
+
+      if (token) {
+        // Store the JWT token in localStorage
+        localStorage.setItem("token", token);
+        setToken(token);
+        
+        alert(message || "Google login successful");
+        
+        // Use the email from the verified user data
+        onStart(user.email, withVideo);
+      } else {
+        alert("Google login failed - no token received");
+      }
+    } catch (err) {
+      console.error("Google login error:", err);
+      alert(
+        err.response?.data?.message || 
+        err.response?.data?.error || 
+        "Google login failed"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     const endpoint = isSignup
       ? "http://localhost:3001/api/auth/signup"
@@ -54,7 +80,7 @@ function Login({
     try {
       const res = await axios.post(
         endpoint,
-        { email, password },
+        { email, password }, 
         { headers: { "Content-Type": "application/json" } }
       );
 
@@ -72,6 +98,8 @@ function Login({
       alert(
         err.response?.data?.msg || err.response?.data?.error || "Server error"
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -114,6 +142,7 @@ function Login({
       canvas.toBlob(async (blob) => {
         if (!blob) {
           alert("Failed to convert image.");
+          setLoading(false);
           return;
         }
 
@@ -156,6 +185,46 @@ function Login({
     fileInputRef.current?.click();
   };
 
+  const handleCompleteSignup = async () => {
+    if (postCardPassword.length < 6) {
+      alert("Password must be at least 6 characters.");
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const res = await axios.post("http://localhost:3001/api/auth/signup", {
+        email: generatedUserId,
+        password: postCardPassword,
+      });
+      
+      const token = res.data.token;
+      
+      if (token) {
+        localStorage.setItem("token", token);
+        setToken(token);
+        alert("Signup successful! You are now logged in.");
+        onStart(generatedUserId, withVideo);
+      } else {
+        alert("Signup successful. Please login using your User ID.");
+        // Reset state and switch to login
+        setEmail(generatedUserId);
+        setPassword("");
+        setIsSignup(false);
+        setIsPostCardSignup(false);
+        setIsImageLoginSuccess(false);
+        setSelectedImage(null);
+        setGeneratedUserId("");
+        setPostCardPassword("");
+      }
+    } catch (err) {
+      alert(err.response?.data?.msg || "Signup failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <Navbar
@@ -169,8 +238,11 @@ function Login({
             <h1>{isSignup ? "Come Join" : "Welcome Back to"} the party!</h1>
             <h2>{isSignup ? "Sign up" : "Login"} to your Pingo account</h2>
           </div>
+          
           {/* Google Login */}
-          <div id="google-signin-btn" className="google-sdk-button" />
+          <div id="google-signin-btn" className="google-sdk-button"/>
+          {loading && <div className="loader" style={{ marginTop: "10px" }} />}
+          
           {/* Standard Login */}
           {!isImageLoginSuccess && !isPostCardSignup && (
             <>
@@ -192,6 +264,7 @@ function Login({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={loading}
                   />
                   <input
                     type="password"
@@ -199,26 +272,30 @@ function Login({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={loading}
                   />
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
                       checked={withVideo}
                       onChange={() => setWithVideo(!withVideo)}
+                      disabled={loading}
                     />
                     <span className="checkbox-text">Enable video chat</span>
                   </label>
-                  <div
+                  <button
+                  
                     type="submit"
                     className="login-btn submit-button"
-                    onClick={handleFormSubmit}
+                    disabled={loading}
                   >
-                    Continue
-                  </div>
+                    {loading ? "Logging in..." : "Continue"}
+                  </button>
                 </form>
               )}
             </>
           )}
+          
           {isSignup && !selectedImage && (
             <>
               <div
@@ -227,6 +304,8 @@ function Login({
                 onDragEnter={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
+                  if (loading) return;
+                  
                   const file = e.dataTransfer.files[0];
                   if (file) {
                     const fakeEvent = { target: { files: [file] } };
@@ -240,7 +319,6 @@ function Login({
                   padding: "20px",
                   borderRadius: "20px",
                   height: "173px",
-                  // width: "500px",
                   textAlign: "center",
                   color: "#666",
                   backgroundColor: "#ffffff",
@@ -248,6 +326,8 @@ function Login({
                   backgroundSize: "initial",
                   backgroundRepeat: "no-repeat",
                   marginBottom: "20px",
+                  opacity: loading ? 0.5 : 1,
+                  pointerEvents: loading ? "none" : "auto",
                 }}
               >
                 <p>
@@ -261,10 +341,11 @@ function Login({
                 style={{
                   textAlign: "center",
                   marginBottom: "10px",
-                  cursor: "pointer",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.5 : 1,
                 }}
               >
-                Upload College ID Card (Click or Drag Below)
+                {loading ? "Processing..." : "Upload College ID Card (Click or Drag Below)"}
               </div>
             </>
           )}
@@ -276,7 +357,9 @@ function Login({
             accept="image/*"
             onChange={handleImageLogin}
             style={{ display: "none" }}
+            disabled={loading}
           />
+          
           {/* Image Preview */}
           {selectedImage && (
             <div style={{ marginTop: "20px", textAlign: "center" }}>
@@ -291,11 +374,9 @@ function Login({
                   borderRadius: "6px",
                 }}
               />
-              {loading && (
-                <div className="loader" style={{ marginTop: "10px" }} />
-              )}
             </div>
           )}
+          
           {/* Generated ID flow */}
           {isPostCardSignup && (
             <div style={{ marginTop: "20px" }}>
@@ -321,55 +402,26 @@ function Login({
                   borderRadius: "6px",
                   border: "1px solid #ccc",
                 }}
+                disabled={loading}
               />
-              <div
+              <button
                 className="submit-button login-btn"
-                onClick={async () => {
-                  if (postCardPassword.length < 6) {
-                    alert("Password must be at least 6 characters.");
-                    return;
-                  }
-                  try {
-                    await axios.post("http://localhost:3001/api/auth/signup", {
-                      email: generatedUserId,
-                      password: postCardPassword,
-                    });
-                    alert(
-                      "Signup successful. Please login using your User ID."
-                    );
-                    // Reset state and switch to login
-                    setEmail(generatedUserId);
-                    setPassword("");
-                    setIsSignup(false);
-                    setIsPostCardSignup(false);
-                    setIsImageLoginSuccess(false);
-                    setSelectedImage(null);
-                    setGeneratedUserId("");
-                    setPostCardPassword("");
-                  } catch (err) {
-                    alert(err.response?.data?.msg || "Signup failed.");
-                  }
-                }}
+                onClick={handleCompleteSignup}
+                disabled={loading}
               >
-                Complete Signup
-              </div>
+                {loading ? "Creating Account..." : "Complete Signup"}
+              </button>
             </div>
           )}
-          {/* ID Upload Trigger */}
-          {/* <div
-            style={{ marginTop: "24px", display: isSignup ? "block" : "none" }}
-          >
-            <button className="submit-button" onClick={handleIDUploadClick}>
-              Login with College ID Card
-            </button>
-          </div> */}
+          
           <div
-            onClick={() => setIsSignup(!isSignup)}
+            onClick={() => !loading && setIsSignup(!isSignup)}
             className="toggle-link"
             style={{
               marginTop: "10px",
-              cursor: "pointer",
+              cursor: loading ? "not-allowed" : "pointer",
               color: "blue",
+              opacity: loading ? 0.5 : 1,
             }}
           >
             <p style={{ fontFamily: `"Rethink Sans", sans-serif` }}>
