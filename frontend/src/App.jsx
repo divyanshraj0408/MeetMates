@@ -12,7 +12,54 @@ function App() {
   const [mediaPermission, setMediaPermission] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(true);
 
+
+  
   useEffect(() => {
+     // Check for existing token and verify
+  const checkTokenAndAutoLogin = async () => {
+    const token = localStorage.getItem("token");
+    const email = localStorage.getItem("collegeEmail");
+    const withVideo = localStorage.getItem("withVideo") === "true";
+
+     if (token && email) {
+      try {
+        const apiUrl = import.meta.env.VITE_BACKEND_URL;
+        if (!apiUrl) {
+          console.error("API URL is not defined in environment variables.");
+          localStorage.removeItem("token");
+          localStorage.removeItem("collegeEmail");
+          localStorage.removeItem("withVideo");
+          return;
+        }
+        const res = await fetch(`${apiUrl}/api/verify-token`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          console.log("Token is valid, auto-logging in...");
+          // Token valid, connect socket and go to waiting room
+          socket.auth = { token };
+          if (!socket.connected) {
+            socket.connect();
+          }
+          socket.emit("findChat", email, withVideo);
+          setCurrentScreen("waiting");
+        } else {
+          localStorage.removeItem("token");
+          localStorage.removeItem("collegeEmail");
+          localStorage.removeItem("withVideo");
+        }
+      } catch (err) {
+        console.error("Token check failed:", err);
+      }
+    }
+  };
+  checkTokenAndAutoLogin();
+
     // Socket event listeners for chat functionality
     socket.on("waiting", () => {
       setCurrentScreen("waiting");
@@ -65,32 +112,33 @@ function App() {
   }, []);
 
   const handleStartChat = async (email, withVideo) => {
-    // Save email in localStorage for reconnections
-    localStorage.setItem("collegeEmail", email);
+  localStorage.setItem("collegeEmail", email);
+  localStorage.setItem("withVideo", withVideo);
 
-    // Check for media permissions if video is enabled
-    if (withVideo) {
-      try {
-        // Request camera and microphone permissions
-        await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        setMediaPermission(true);
-        setVideoEnabled(true);
-      } catch (err) {
-        alert(
-          "Camera or microphone permission denied. Chat will continue without video."
-        );
-        setMediaPermission(false);
-        setVideoEnabled(false);
-      }
-    } else {
+  const token = localStorage.getItem("token"); // already saved during login
+  if (token) {
+    socket.auth = { token };
+  }
+
+  if (withVideo) {
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      setMediaPermission(true);
+      setVideoEnabled(true);
+    } catch (err) {
+      alert("Camera or microphone permission denied. Chat will continue without video.");
+      setMediaPermission(false);
       setVideoEnabled(false);
     }
+  } else {
+    setVideoEnabled(false);
+  }
 
-    // Connect socket and find chat
-    socket.connect();
-    socket.emit("findChat", email, withVideo);
-    setCurrentScreen("waiting");
-  };
+  socket.connect();
+  socket.emit("findChat", email, withVideo);
+  setCurrentScreen("waiting");
+};
+
 
   const handleSendMessage = (message) => {
     if (message.trim()) {
