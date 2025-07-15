@@ -291,6 +291,7 @@ function Login({
                     type="submit"
                     className="login-btn submit-button"
                     disabled={loading}
+                    style={{width: "100%",outline: "none",border:"none"}}
                   >
                     {loading ? "Logging in..." : "Continue"}
                   </button>
@@ -411,6 +412,7 @@ function Login({
                 className="submit-button login-btn"
                 onClick={handleCompleteSignup}
                 disabled={loading}
+                style={{ width: "100%", outline: "none",border:"none" }}
               >
                 {loading ? "Creating Account..." : "Complete Signup"}
               </button>
