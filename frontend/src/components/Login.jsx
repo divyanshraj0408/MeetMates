@@ -35,7 +35,7 @@ function Login({
       
       // Send the Google JWT token to your backend for verification and user creation/login
       const res = await axios.post(
-        "http://localhost:3001/api/auth/google-login",
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/google-login`,
         { 
           credential: response.credential,
           withVideo: withVideo 
@@ -74,8 +74,8 @@ function Login({
     setLoading(true);
 
     const endpoint = isSignup
-      ? "http://localhost:3001/api/auth/signup"
-      : "http://localhost:3001/api/auth/login";
+      ? `${import.meta.env.VITE_BACKEND_URL}/api/auth/signup`
+      : `${import.meta.env.VITE_BACKEND_URL}/api/auth/login`;
 
     try {
       const res = await axios.post(
@@ -151,13 +151,13 @@ function Login({
 
         setSelectedImage(canvas.toDataURL("image/png")); // Preview
         try {
-          const res = await axios.post(
-            "http://localhost:3001/api/auth/image-login",
+            const res = await axios.post(
+            `${import.meta.env.VITE_BACKEND_URL}/api/auth/image-login`,
             formData,
             {
               headers: { "Content-Type": "multipart/form-data" },
             }
-          );
+            );
 
           const userId = res.data.user_id;
           if (userId) {
@@ -194,10 +194,13 @@ function Login({
     setLoading(true);
     
     try {
-      const res = await axios.post("http://localhost:3001/api/auth/signup", {
-        email: generatedUserId,
-        password: postCardPassword,
-      });
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/signup`,
+        {
+          email: generatedUserId,
+          password: postCardPassword,
+        }
+      );
       
       const token = res.data.token;
       
