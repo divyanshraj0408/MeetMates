@@ -173,7 +173,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 2px;
   height: 100%;
   scroll-behavior:smooth;
   /* scrollbar-width: thin; */
@@ -182,7 +182,7 @@
 
 .message {
   max-width: 80%;
-  padding: 12px 16px;
+  padding: 8px 16px;
   border-radius: 2px;
   word-break: break-word;
 }
