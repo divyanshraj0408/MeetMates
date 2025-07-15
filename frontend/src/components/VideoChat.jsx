@@ -394,9 +394,9 @@ function VideoChat({ socketId, toggleVideo,messages,onSendMessage }) {
                 >
                   {isCameraOff ? "📵" : "📹"}
                 </button>
-                <button className="control-btn hide-video-btn" onClick={toggleVideo}>
+                {/* <button className="control-btn hide-video-btn" onClick={toggleVideo}>
                   Hide Video
-                </button>
+                </button> */}
               </div>
             </div>
           </div>
