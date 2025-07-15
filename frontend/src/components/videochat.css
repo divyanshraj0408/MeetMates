@@ -1,7 +1,7 @@
 .video-chat-container {
   padding: 20px;
   border-bottom: 3px solid var(--border);
-  height: 100vh;
+  height: calc(100vh - 65.5px);
   /* overflow: hidden; */
   display: flex;
   flex-direction: column;
