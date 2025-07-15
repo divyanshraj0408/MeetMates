@@ -39,16 +39,46 @@
 
 @media (max-width: 768px) {
   .video-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: none;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    height: 100%;
   }
-  .video-grid > :first-child,
-  .video-grid > :nth-child(2),
-  .video-grid > :nth-child(3) {
-    grid-column: 1 / 2;
-    grid-row: auto;
+
+  .video-grid > :first-child { /* remote video */
+    width: 100%;
+    flex: 1;
+    order: 1;
+    position: relative;
+  }
+
+  .video-grid > :nth-child(2) { /* local video */
+    position: absolute;
+    bottom: 200px;
+    right: 40px;
+    width: 40%;
     height: auto;
-    max-height:50%;
+    max-width: 150px;
+    z-index: 10;
+    border: 2px solid white;
+    border-radius: 8px;
+    order: 2;
+  }
+
+  .video-grid > :nth-child(3) { /* chat section */
+    order: 3;
+    height: auto;
+    max-height: 40%;
+    min-height: 200px;
+    width: 100%;
+  }
+
+  .video-box video {
+    object-fit: cover;
+  }
+
+  .video-box.local-video {
+    height: auto;
   }
 }
 
