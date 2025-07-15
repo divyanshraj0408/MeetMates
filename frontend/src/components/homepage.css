@@ -27,6 +27,25 @@
 }
 
 /* CTA Button */
+.cta-sec{
+  display: flex;
+  /* flex-direction: column; */
+  align-items: center;
+  text-align:center;
+  /* margin: 2rem; */
+  gap: 1rem;
+}
+@media (max-width: 768px) {
+  .cta-sec{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* text-align:center; */
+  /* margin: 2rem; */
+  gap: 1rem;
+}
+  
+}
 .wild-btn {
   background-color: #ff5599;
   color: white;

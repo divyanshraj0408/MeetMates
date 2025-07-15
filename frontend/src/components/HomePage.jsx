@@ -19,9 +19,12 @@ const HomePage = ({ onGoToLogin, goBack, doBackDisplay, doLoginDisplay }) => {
               Let's multiply it.
             </h1>
             <p>No bios. No filters. Just unhinged energy.</p>
-            <button className="wild-btn" onClick={onGoToLogin}>
-              Let’s Go Wild!
-            </button>
+            <div className="cta-sec">
+              <button className="wild-btn" onClick={onGoToLogin}>
+                Let’s Go Wild!
+              </button>
+              Made exclusive for ADGIPS
+            </div>
           </div>
         </main>
       </div>
