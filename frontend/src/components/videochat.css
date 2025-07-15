@@ -54,7 +54,7 @@
 
   .video-grid > :nth-child(2) { /* local video */
     position: absolute;
-    bottom: 180px;
+    bottom: 300px;
     right: 40px;
     width: 40%;
     height: auto;
@@ -131,12 +131,13 @@
 }
 
 .control-btn {
-  background-color: var(--primary);
+  /* background-color: var(--primary); */
+  background-color: transparent;
   color: var(--primary-foreground);
   border: 3px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 1rem;
+  border-radius: 100%;
+  /* padding: 16px 16px; */
+  /* font-size: 1rem; */
   transition: transform 0.2s, box-shadow 0.2s;
   margin: 8px;
 }

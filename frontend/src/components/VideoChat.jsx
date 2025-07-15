@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import socket from "../Socket";
+import { Video, VideoOff, Mic, MicOff } from 'lucide-react';
+
 import "./videochat.css";
 
 function VideoChat({ socketId, toggleVideo,messages,onSendMessage }) {
@@ -379,37 +381,63 @@ function VideoChat({ socketId, toggleVideo,messages,onSendMessage }) {
                 autoPlay
                 playsInline
                 muted // Always mute local video to prevent echo
-              />
-              <div className="video-label">You</div>
-              <div className="video-controls">
+                />
+                <div className="video-label">You</div>
+                <div className="video-controls">
                 <button
                   className={`control-btn ${isMuted ? "control-off" : ""}`}
                   onClick={toggleMute}
+                  style={{
+                  padding: 0,
+                  width: "36px",
+                  height: "36px",
+                  }}
                 >
-                  {isMuted ? "🔇" : "🔊"}
+                  {isMuted ? (
+                  <MicOff
+                    size={window.innerWidth < 600 ? 16 : 22}
+                  />
+                  ) : (
+                  <Mic
+                    size={window.innerWidth < 600 ? 16 : 22}
+                  />
+                  )}
                 </button>
                 <button
                   className={`control-btn ${isCameraOff ? "control-off" : ""}`}
                   onClick={toggleCamera}
+                  style={{
+                  padding: 0,
+                  width: "36px",
+                  height: "36px",
+                  }}
                 >
-                  {isCameraOff ? "📵" : "📹"}
+                  {isCameraOff ? (
+                  <VideoOff
+                    size={window.innerWidth < 600 ? 16 : 22}
+                  />
+                  ) : (
+                  <Video
+                    size={window.innerWidth < 600 ? 16 : 22}
+                  />
+                  )}
                 </button>
                 {/* <button className="control-btn hide-video-btn" onClick={toggleVideo}>
                   Hide Video
                 </button> */}
+                </div>
               </div>
-            </div>
-          </div>
-           <div className="text-chat-section">
-         <div className="messages-container">
+              </div>
+               <div className="text-chat-section">
+             <div className="messages-container">
                 {messages.map((msg, index) => (
                   <div key={index} className={`message ${msg.type}-message`}>
-                    {msg.text}
+                  {msg.text}
                   </div>
                 ))}
                 <div ref={messagesEndRef} />
-              </div>
-               <form onSubmit={handleSubmit} className="message-form">
+                </div>
+                 <form onSubmit={handleSubmit} className="message-form">
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
