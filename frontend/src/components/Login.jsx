@@ -455,9 +455,9 @@ function Login({
               opacity: loading ? 0.5 : 1,
             }}
           >
-            <p style={{ fontFamily: `"Rethink Sans", sans-serif` }}>
-              {isSignup ? "Already registered? Login" : "New user? Signup"}
-            </p>
+            {!selectedImage && <p style={{ fontFamily: `"Rethink Sans", sans-serif` }}>
+              {isSignup  ? "Already registered? Login" : "New user? Signup"}
+            </p>}
           </div>
         </div>
       </div>
