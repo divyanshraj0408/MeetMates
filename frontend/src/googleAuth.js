@@ -11,7 +11,7 @@ export const renderGoogleButton = (elementId, clientId, callback) => {
       theme: "outline",
       size: "large",
       type: "standard",
-      // width: "1000px",
+      width: "100%",
       shape: "pill",
       text:"continue_with",
     }
