@@ -366,20 +366,46 @@ function Login({
           
           {/* Image Preview */}
           {selectedImage && (
-            <div style={{ marginTop: "20px", textAlign: "center" }}>
-              <img
-                src={selectedImage}
-                alt="Selected ID"
-                style={{
-                  width: "100%",
-                  maxHeight: "200px",
-                  objectFit: "contain",
-                  border: "2px solid #000",
-                  borderRadius: "6px",
-                }}
-              />
-            </div>
-          )}
+  <div style={{ marginTop: "20px", textAlign: "center" }}>
+    <img
+      src={selectedImage}
+      alt="Selected ID"
+      style={{
+        width: "100%",
+        maxHeight: "200px",
+        objectFit: "contain",
+        border: "2px solid #000",
+        borderRadius: "6px",
+      }}
+    />
+    <div style={{ marginTop: "10px" }}>
+      <button
+        className="submit-button login-btn"
+        onClick={() => {
+          setSelectedImage(null);
+          setIsImageLoginSuccess(false);
+          setGeneratedUserId("");
+          setPostCardPassword("");
+          setIsPostCardSignup(false);
+        }}
+        disabled={loading}
+        style={{
+          width: "100%",
+          outline: "none",
+          border: "none",
+          backgroundColor: "#f44336", // red button
+          color: "white",
+          marginTop: "10px",
+          cursor: loading ? "not-allowed" : "pointer",
+          opacity: loading ? 0.5 : 1,
+        }}
+      >
+        Reselect Image
+      </button>
+    </div>
+  </div>
+)}
+
           
           {/* Generated ID flow */}
           {isPostCardSignup && (
