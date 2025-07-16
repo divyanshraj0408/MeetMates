@@ -243,7 +243,7 @@ function Login({
           </div>
           
           {/* Google Login */}
-          <div id="google-signin-btn" className="google-sdk-button"/>
+         {!selectedImage&& <div id="google-signin-btn" className="google-sdk-button"/>}
           {loading && <div className="loader" style={{ marginTop: "10px" }} />}
           
           {/* Standard Login */}
