@@ -349,7 +349,7 @@ function Login({
                   opacity: loading ? 0.5 : 1,
                 }}
               >
-                {loading ? "Processing..." : "Upload College ID Card (Click or Drag Below)"}
+                {loading ? "Processing..." : "Upload College ID Card (Click or Drag Above)"}
               </div>
             </>
           )}
