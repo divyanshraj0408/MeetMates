@@ -281,9 +281,9 @@
   background-color: #C2A8FF!important;
   color: black !important;
   border: 3px solid var(--border);
-  padding: 0 20px;
-  margin-left: 10px;
-  font-weight: 700;
+  /* padding: 0 20px; */
+  /* margin-left: 10px; */
+  /* font-weight: 700; */
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -299,6 +299,11 @@
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
+  .message-form textarea{
+    width: calc(100% - 120px);
+    height: 50px;
+    align-content: center;
+  }
   .login-card,
   .waiting-card {
     padding: 25px;

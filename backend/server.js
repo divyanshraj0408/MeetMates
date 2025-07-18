@@ -123,8 +123,9 @@ let chatPairs = {};
 let rtcReadyUsers = new Set();
 // Track authenticated users
 let authenticatedUsers = new Map(); // socketId -> user info
-
+let onlineUsers = 0;
 io.on("connection", (socket) => {
+
   console.log("New user connected:", socket.id);
   
   // Store user info if authenticated
@@ -136,6 +137,16 @@ io.on("connection", (socket) => {
     });
     console.log(`Authenticated user connected: ${socket.userEmail}`);
   }
+  io.on("connection", (socket) => {
+  onlineUsers++;
+  console.log("User connected:", socket.id, "Total online users:", onlineUsers);
+  io.emit("onlineUsers", onlineUsers); // broadcast updated count
+
+  socket.on("disconnect", () => {
+    onlineUsers = Math.max(onlineUsers - 1, 0);
+    io.emit("onlineUsers", onlineUsers);
+  });
+});
 
   // Enhanced findChat with authentication info
   socket.on("findChat", (collegeEmail, withVideo = false) => {

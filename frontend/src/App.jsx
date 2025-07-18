@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import HomePage from "./components/HomePage";
 import Login from "./components/Login";
+import StartPage from "./components/StartingPage";
 import WaitingRoom from "./components/WaitingRoom";
 import ChatRoom from "./components/ChatRoom";
 import socket from "./Socket";
@@ -11,56 +12,58 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [mediaPermission, setMediaPermission] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(true);
+  const [onlineUserCount, setOnlineUserCount] = useState(0);
 
-
-  
   useEffect(() => {
-     // Check for existing token and verify
-  const checkTokenAndAutoLogin = async () => {
-    const token = localStorage.getItem("token");
-    const email = localStorage.getItem("collegeEmail");
-    const withVideo = localStorage.getItem("withVideo") === "true";
+    // Auto-login and token verification
+    const checkTokenAndAutoLogin = async () => {
+      const token = localStorage.getItem("token");
+      const email = localStorage.getItem("collegeEmail");
+      const withVideo = localStorage.getItem("withVideo") === "true";
 
-     if (token && email) {
-      try {
-        const apiUrl = import.meta.env.VITE_BACKEND_URL;
-        if (!apiUrl) {
-          console.error("API URL is not defined in environment variables.");
-          localStorage.removeItem("token");
-          localStorage.removeItem("collegeEmail");
-          localStorage.removeItem("withVideo");
-          return;
-        }
-        const res = await fetch(`${apiUrl}/api/verify-token`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          console.log("Token is valid, auto-logging in...");
-          // Token valid, connect socket and go to waiting room
-          socket.auth = { token };
-          if (!socket.connected) {
-            socket.connect();
+      if (token && email) {
+        try {
+          const apiUrl = import.meta.env.VITE_BACKEND_URL;
+          if (!apiUrl) {
+            console.error("API URL is not defined.");
+            localStorage.clear();
+            return;
           }
-          socket.emit("findChat", email, withVideo);
-          setCurrentScreen("waiting");
-        } else {
-          localStorage.removeItem("token");
-          localStorage.removeItem("collegeEmail");
-          localStorage.removeItem("withVideo");
-        }
-      } catch (err) {
-        console.error("Token check failed:", err);
-      }
-    }
-  };
-  checkTokenAndAutoLogin();
 
-    // Socket event listeners for chat functionality
+          const res = await fetch(`${apiUrl}/api/verify-token`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            console.log("Token is valid, auto-login...");
+            socket.auth = { token };
+            if (!socket.connected) {
+              socket.connect();
+            }
+            setCurrentScreen("start"); // 👉 Go to StartPage after login
+          } else {
+            localStorage.clear();
+          }
+        } catch (err) {
+          console.error("Token check failed:", err);
+        }
+      }
+    };
+
+    checkTokenAndAutoLogin();
+
+    // Socket event listeners
+
+    socket.on("onlineUsers", (count) => {
+      console.log("Online users count:", count);
+      setOnlineUserCount(count);
+    });
+
     socket.on("waiting", () => {
       setCurrentScreen("waiting");
     });
@@ -69,7 +72,6 @@ function App() {
       setCurrentScreen("chat");
       setMessages([
         {
-          // text: "You are now connected! Say hello!",
           type: "system",
         },
       ]);
@@ -89,10 +91,9 @@ function App() {
         },
       ]);
 
-      // Wait a moment before switching back to waiting
+      // Wait before returning to start page
       setTimeout(() => {
-        setCurrentScreen("waiting");
-        socket.emit("findChat", localStorage.getItem("collegeEmail"));
+        setCurrentScreen("start");
       }, 2000);
     });
 
@@ -101,8 +102,8 @@ function App() {
       setCurrentScreen("login");
     });
 
-    // Clean up listeners on unmount
     return () => {
+      socket.off("onlineUsers");
       socket.off("waiting");
       socket.off("chatStart");
       socket.off("message");
@@ -112,33 +113,32 @@ function App() {
   }, []);
 
   const handleStartChat = async (email, withVideo) => {
-  localStorage.setItem("collegeEmail", email);
-  localStorage.setItem("withVideo", withVideo);
+    localStorage.setItem("collegeEmail", email);
+    localStorage.setItem("withVideo", withVideo);
 
-  const token = localStorage.getItem("token"); // already saved during login
-  if (token) {
-    socket.auth = { token };
-  }
+    const token = localStorage.getItem("token");
+    if (token) {
+      socket.auth = { token };
+    }
 
-  if (withVideo) {
-    try {
-      await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      setMediaPermission(true);
-      setVideoEnabled(true);
-    } catch (err) {
-      alert("Camera or microphone permission denied. Chat will continue without video.");
-      setMediaPermission(false);
+    if (withVideo) {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        setMediaPermission(true);
+        setVideoEnabled(true);
+      } catch (err) {
+        alert("Camera or microphone permission denied. Chat will continue without video.");
+        setMediaPermission(false);
+        setVideoEnabled(false);
+      }
+    } else {
       setVideoEnabled(false);
     }
-  } else {
-    setVideoEnabled(false);
-  }
 
-  socket.connect();
-  socket.emit("findChat", email, withVideo);
-  setCurrentScreen("waiting");
-};
-
+    socket.connect();
+    socket.emit("findChat", email, withVideo);
+    setCurrentScreen("waiting");
+  };
 
   const handleSendMessage = (message) => {
     if (message.trim()) {
@@ -149,13 +149,19 @@ function App() {
   const handleNextChat = () => {
     socket.emit("next");
     setMessages([]);
+    setCurrentScreen("start"); // 👉 go to StartPage instead of auto-search
   };
 
   const toggleVideo = () => {
     setVideoEnabled((prev) => !prev);
   };
 
-  // Render the appropriate screen
+  const logout = () => {
+    localStorage.clear();
+    socket.disconnect();
+    setCurrentScreen("login");
+  };
+
   const renderScreen = () => {
     switch (currentScreen) {
       case "home":
@@ -163,21 +169,44 @@ function App() {
           <HomePage
             onGoToLogin={() => setCurrentScreen("login")}
             goBack={() => setCurrentScreen("home")}
-            doBackDisplay={"none"}
-            doLoginDisplay={"block"}
+            doBackDisplay="none"
+            doLoginDisplay="block"
           />
         );
+
       case "login":
         return (
           <Login
-            onStart={handleStartChat}
+            onStart={(email, withVideo) => {
+              localStorage.setItem("collegeEmail", email);
+              localStorage.setItem("withVideo", withVideo);
+              setCurrentScreen("start");
+            }}
             goBack={() => setCurrentScreen("home")}
-            doBackDisplay={"block"}
-            doLoginDisplay={"none"}
+            doBackDisplay="block"
+            doLoginDisplay="none"
           />
         );
+
+      case "start":
+        return (
+          <StartPage
+            onStartChat={() =>
+              handleStartChat(
+                localStorage.getItem("collegeEmail"),
+                localStorage.getItem("withVideo") === "true"
+              )
+            }
+            goBack={() => setCurrentScreen("home")}
+            logout={logout}
+            onlineUserCount={onlineUserCount} // ✅ This must be here!
+          />
+        );
+
+
       case "waiting":
         return <WaitingRoom />;
+
       case "chat":
         return (
           <ChatRoom

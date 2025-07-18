@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "./login.css";
+import { Trash2 } from 'lucide-react';
 import { renderGoogleButton } from "../googleAuth.js";
 import Navbar from "./Navbar.jsx";
 
@@ -398,9 +399,14 @@ function Login({
           marginTop: "10px",
           cursor: loading ? "not-allowed" : "pointer",
           opacity: loading ? 0.5 : 1,
+          textAlign: "center",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "5px",
         }}
       >
-        Reselect Image
+            <Trash2 /> Reselect Image
       </button>
     </div>
   </div>

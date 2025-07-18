@@ -4,7 +4,7 @@ import { Video, VideoOff, Mic, MicOff } from 'lucide-react';
 
 import "./videochat.css";
 
-function VideoChat({ socketId, toggleVideo,messages,onSendMessage }) {
+function VideoChat({ socketId, toggleVideo, messages, onSendMessage }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
@@ -333,7 +333,7 @@ function VideoChat({ socketId, toggleVideo,messages,onSendMessage }) {
     createPeerConnection();
     socket.emit("ready-to-connect");
   };
-    const handleSubmit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (message.trim()) {
       onSendMessage(message);
@@ -374,84 +374,85 @@ function VideoChat({ socketId, toggleVideo,messages,onSendMessage }) {
           )}
         </div>
 
-          <div>
-            <div className="video-box local-video">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted // Always mute local video to prevent echo
-                />
-                <div className="video-label">You</div>
-                <div className="video-controls">
-                <button
-                  className={`control-btn ${isMuted ? "control-off" : ""}`}
-                  onClick={toggleMute}
-                  style={{
+        <div>
+          <div className="video-box local-video">
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted // Always mute local video to prevent echo
+            />
+            <div className="video-label">You</div>
+            <div className="video-controls">
+              <button
+                className={`control-btn ${isMuted ? "control-off" : ""}`}
+                onClick={toggleMute}
+                style={{
                   padding: 0,
                   width: "36px",
                   height: "36px",
-                  }}
-                >
-                  {isMuted ? (
+                }}
+              >
+                {isMuted ? (
                   <MicOff
                     size={window.innerWidth < 600 ? 16 : 22}
                   />
-                  ) : (
+                ) : (
                   <Mic
                     size={window.innerWidth < 600 ? 16 : 22}
                   />
-                  )}
-                </button>
-                <button
-                  className={`control-btn ${isCameraOff ? "control-off" : ""}`}
-                  onClick={toggleCamera}
-                  style={{
+                )}
+              </button>
+              <button
+                className={`control-btn ${isCameraOff ? "control-off" : ""}`}
+                onClick={toggleCamera}
+                style={{
                   padding: 0,
                   width: "36px",
                   height: "36px",
-                  }}
-                >
-                  {isCameraOff ? (
+                }}
+              >
+                {isCameraOff ? (
                   <VideoOff
                     size={window.innerWidth < 600 ? 16 : 22}
                   />
-                  ) : (
+                ) : (
                   <Video
                     size={window.innerWidth < 600 ? 16 : 22}
                   />
-                  )}
-                </button>
-                {/* <button className="control-btn hide-video-btn" onClick={toggleVideo}>
+                )}
+              </button>
+              {/* <button className="control-btn hide-video-btn" onClick={toggleVideo}>
                   Hide Video
                 </button> */}
-                </div>
+            </div>
+          </div>
+        </div>
+        <div className="text-chat-section">
+          <div className="messages-container">
+            {messages.map((msg, index) => (
+              <div key={index} className={`message ${msg.type}-message`}>
+                {msg.text}
               </div>
-              </div>
-               <div className="text-chat-section">
-             <div className="messages-container">
-                {messages.map((msg, index) => (
-                  <div key={index} className={`message ${msg.type}-message`}>
-                  {msg.text}
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-                </div>
-                 <form onSubmit={handleSubmit} className="message-form">
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
-                    }
-                  }}
-                />
-                <button type="submit" className="send-button">Shoot</button>
-              </form>
-              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+          <form onSubmit={handleSubmit} className="message-form">
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="message-input"
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+            />
+            <button type="submit" className="send-button">Shoot</button>
+          </form>
+        </div>
       </div>
     </div>
   );
