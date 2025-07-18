@@ -253,7 +253,7 @@ function Login({
               <div className="or-separator">OR</div>
               {!isSignup ? (
                 <p className="cta-text" style={{ marginBottom: "20px" }}>
-                  Login using your College email
+                  Login using your ADGIPS email
                 </p>
               ) : (
                 <p className="cta-text" style={{ marginBottom: "20px" }}>
@@ -350,7 +350,11 @@ function Login({
                   opacity: loading ? 0.5 : 1,
                 }}
               >
-                {loading ? "Processing..." : "Upload College ID Card (Click or Drag Above)"}
+                {loading ? "Processing..." : (
+                  <>
+                    We only support ADGIPS's ID Card <br/>(Click or Drag Above)
+                  </>
+                )}
               </div>
             </>
           )}

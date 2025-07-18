@@ -201,7 +201,7 @@ function App() {
               )
             }
             goBack={() => setCurrentScreen("home")}
-            logout={logout}
+            onLogout={logout}
             onlineUserCount={onlineUserCount} // ✅ This must be here!
           />
         );
@@ -232,6 +232,7 @@ function App() {
             videoEnabled={videoEnabled}
             toggleVideo={toggleVideo}
             socketId={socket.id}
+            onLogout={logout}
           />
         );
 

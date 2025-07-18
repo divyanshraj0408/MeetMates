@@ -9,6 +9,7 @@ function ChatRoom({
   videoEnabled,
   toggleVideo,
   socketId,
+  onLogout
 }) {
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef(null);
@@ -32,6 +33,12 @@ function ChatRoom({
         <h2>You're now chatting with a student</h2>
         <button onClick={onNext} className="next-button">
           Next
+        </button>
+        <button
+          className="cta-btn"
+          onClick={onLogout}
+        >
+          Log Out
         </button>
       </div>
 

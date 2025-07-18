@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import "./startpage.css";
+// import { LogOut } from "lucide-react";
 
 function StartPage({ onStartChat, onLogout, onlineUserCount,loading }) {
   const videoRef = useRef(null);
@@ -32,6 +33,12 @@ function StartPage({ onStartChat, onLogout, onlineUserCount,loading }) {
     <div className="startpage">
       <header className="navbar">
         <p className="logo">pingo</p>
+        <button
+          className="cta-btn"
+          onClick={onLogout}
+        >
+          Log Out
+        </button>
       </header>
 
       <div className="content">
