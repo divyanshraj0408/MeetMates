@@ -205,7 +205,21 @@ function App() {
 
 
       case "waiting":
-        return <WaitingRoom />;
+        return  (
+          <StartPage
+            onStartChat={() =>
+              handleStartChat(
+                localStorage.getItem("collegeEmail"),
+                localStorage.getItem("withVideo") === "true"
+              )
+            }
+            goBack={() => setCurrentScreen("home")}
+            logout={logout}
+            onlineUserCount={onlineUserCount} // ✅ This must be here!
+            loading={true} // Show loading spinner in StartPage
+
+          />
+        );
 
       case "chat":
         return (

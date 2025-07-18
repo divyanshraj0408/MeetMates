@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import "./startpage.css";
 
-function StartPage({ onStartChat, onLogout, onlineUserCount }) {
+function StartPage({ onStartChat, onLogout, onlineUserCount,loading }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ function StartPage({ onStartChat, onLogout, onlineUserCount }) {
             <div className="filter">🌍 All ADGIPS</div>
           </div>
 
-          <button className="vibe-btn" onClick={onStartChat}>Let’s Vibe!</button>
+          <button className="vibe-btn" onClick={onStartChat}>{ loading ? <div className="loader" /> : "Lets Vibe" }</button>
         </div>
 
         {/* Right Section (actual local video preview) */}
