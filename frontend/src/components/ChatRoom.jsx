@@ -18,13 +18,13 @@ function ChatRoom({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // const handleSubmit = (e) => {
-  //   e.preventDefault();
-  //   if (message.trim()) {
-  //     onSendMessage(message);
-  //     setMessage("");
-  //   }
-  // };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (message.trim()) {
+      onSendMessage(message);
+      setMessage("");
+    }
+  };
 
   return (
     <div className={`chat-container ${videoEnabled ? "with-video" : ""}`}>

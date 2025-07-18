@@ -83,19 +83,23 @@ function App() {
     });
 
     socket.on("partnerLeft", () => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          text: "Your chat partner disconnected.",
-          type: "system",
-        },
-      ]);
+  setMessages((prev) => [
+    ...prev,
+    {
+      text: "Your chat partner disconnected. Finding a new user...",
+      type: "system",
+    },
+  ]);
 
-      // Wait before returning to start page
-      setTimeout(() => {
-        setCurrentScreen("start");
-      }, 2000);
-    });
+  // Auto-restart chat after 2 seconds
+  setTimeout(() => {
+    handleStartChat(
+      localStorage.getItem("collegeEmail"),
+      localStorage.getItem("withVideo") === "true"
+    );
+  }, 2000);
+});
+ 
 
     socket.on("error", (message) => {
       alert(message);
@@ -149,7 +153,6 @@ function App() {
   const handleNextChat = () => {
     socket.emit("next");
     setMessages([]);
-    setCurrentScreen("start"); // 👉 go to StartPage instead of auto-search
   };
 
   const toggleVideo = () => {
@@ -215,9 +218,8 @@ function App() {
             }
             goBack={() => setCurrentScreen("home")}
             logout={logout}
-            onlineUserCount={onlineUserCount} // ✅ This must be here!
-            loading={true} // Show loading spinner in StartPage
-
+            onlineUserCount={onlineUserCount} 
+            loading={true} 
           />
         );
 

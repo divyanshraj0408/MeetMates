@@ -182,20 +182,36 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("next", () => {
-    if (chatPairs[socket.id]) {
-      const partner = chatPairs[socket.id].partner;
-      const room = chatPairs[socket.id].room;
-      io.to(partner).emit("partnerLeft");
-      socket.leave(room);
-      io.sockets.sockets.get(partner)?.leave(room);
-      delete chatPairs[socket.id];
-      delete chatPairs[partner];
-      waitingUsers.push(socket.id);
-      socket.emit("waiting");
-      matchUsers();
-    }
-  });
+socket.on("next", () => {
+  if (chatPairs[socket.id]) {
+    const partner = chatPairs[socket.id].partner;
+    const room = chatPairs[socket.id].room;
+
+    // Notify both users their partner left
+    io.to(partner).emit("partnerLeft");
+    io.to(socket.id).emit("partnerLeft");
+
+    // Both users leave the room
+    socket.leave(room);
+    io.sockets.sockets.get(partner)?.leave(room);
+
+    // Clean up chatPairs
+    delete chatPairs[socket.id];
+    delete chatPairs[partner];
+
+    // Push both back to waiting queue
+    waitingUsers.push(socket.id);
+    waitingUsers.push(partner);
+
+    // Notify both users to show "waiting" screen
+    socket.emit("waiting");
+    io.sockets.sockets.get(partner)?.emit("waiting");
+
+    // Attempt to match both users again
+    matchUsers();
+  }
+});
+
 
   // WebRTC Signaling Handlers
   socket.on("ready-to-connect", () => {
