@@ -4,7 +4,7 @@ import { Video, VideoOff, Mic, MicOff } from 'lucide-react';
 
 import "./videochat.css";
 
-function VideoChat({ socketId, toggleVideo, messages, onSendMessage }) {
+function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onNext }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
@@ -372,6 +372,9 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage }) {
               Reconnect
             </button>
           )}
+          <button style={{zIndex: 1000, position: "absolute", bottom: "10px", right: "10px"}} className="next-button" onClick={onNext}>
+            Pass {">"}
+          </button>
         </div>
 
         <div>
@@ -422,9 +425,9 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage }) {
                   />
                 )}
               </button>
-              {/* <button className="control-btn hide-video-btn" onClick={toggleVideo}>
-                  Hide Video
-                </button> */}
+              <button className="control-btn hide-video-btn" style={{ padding: "8px" }} onClick={endCall}>
+                Bye
+              </button>
             </div>
           </div>
         </div>

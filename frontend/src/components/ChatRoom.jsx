@@ -9,7 +9,8 @@ function ChatRoom({
   videoEnabled,
   toggleVideo,
   socketId,
-  onLogout
+  onLogout,
+  endCall
 }) {
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef(null);
@@ -30,10 +31,10 @@ function ChatRoom({
   return (
     <div className={`chat-container ${videoEnabled ? "with-video" : ""}`}>
       <div className="chat-header">
-        <h2>You're now chatting with a student</h2>
-        <button onClick={onNext} className="next-button">
+        <p className="logo">Pingo</p>
+        {/* <button onClick={onNext} className="next-button">
           Next
-        </button>
+        </button> */}
         <button
           className="cta-btn"
           onClick={onLogout}
@@ -45,7 +46,7 @@ function ChatRoom({
       <div className="chat-body">
         {videoEnabled && (
           <div>
-            <VideoChat socketId={socketId} toggleVideo={toggleVideo} messages={messages} onSendMessage={onSendMessage}/>
+            <VideoChat socketId={socketId} toggleVideo={toggleVideo} messages={messages} onSendMessage={onSendMessage} endCall={endCall} onNext={onNext}/>
           </div>
         )}
 

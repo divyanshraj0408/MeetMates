@@ -83,23 +83,23 @@ function App() {
     });
 
     socket.on("partnerLeft", () => {
-  setMessages((prev) => [
-    ...prev,
-    {
-      text: "Your chat partner disconnected. Finding a new user...",
-      type: "system",
-    },
-  ]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: "Your chat partner disconnected. Finding a new user...",
+          type: "system",
+        },
+      ]);
 
-  // Auto-restart chat after 2 seconds
-  setTimeout(() => {
-    handleStartChat(
-      localStorage.getItem("collegeEmail"),
-      localStorage.getItem("withVideo") === "true"
-    );
-  }, 2000);
-});
- 
+      // Auto-restart chat after 2 seconds
+      setTimeout(() => {
+        handleStartChat(
+          localStorage.getItem("collegeEmail"),
+          localStorage.getItem("withVideo") === "true"
+        );
+      }, 2000);
+    });
+
 
     socket.on("error", (message) => {
       alert(message);
@@ -208,7 +208,7 @@ function App() {
 
 
       case "waiting":
-        return  (
+        return (
           <StartPage
             onStartChat={() =>
               handleStartChat(
@@ -218,8 +218,8 @@ function App() {
             }
             goBack={() => setCurrentScreen("home")}
             logout={logout}
-            onlineUserCount={onlineUserCount} 
-            loading={true} 
+            onlineUserCount={onlineUserCount}
+            loading={true}
           />
         );
 
@@ -233,6 +233,12 @@ function App() {
             toggleVideo={toggleVideo}
             socketId={socket.id}
             onLogout={logout}
+            endCall={() => {
+              setCurrentScreen("start");
+              socket.emit("disconnect");
+            }
+
+            }
           />
         );
 
