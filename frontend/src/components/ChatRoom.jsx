@@ -31,7 +31,7 @@ function ChatRoom({
   return (
     <div className={`chat-container ${videoEnabled ? "with-video" : ""}`}>
       <div className="chat-header">
-        <p className="logo">Pingo</p>
+        <p className="logo">pingo</p>
         {/* <button onClick={onNext} className="next-button">
           Next
         </button> */}
