@@ -13,6 +13,8 @@ function App() {
   const [mediaPermission, setMediaPermission] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [onlineUserCount, setOnlineUserCount] = useState(0);
+  const [currentPartnerId, setCurrentPartnerId] = useState(null);
+  const [isVideoChat, setIsVideoChat] = useState(false);
 
   useEffect(() => {
     // Auto-login and token verification
@@ -45,7 +47,7 @@ function App() {
             if (!socket.connected) {
               socket.connect();
             }
-            setCurrentScreen("start"); // 👉 Go to StartPage after login
+            setCurrentScreen("start");
           } else {
             localStorage.clear();
           }
@@ -58,7 +60,6 @@ function App() {
     checkTokenAndAutoLogin();
 
     // Socket event listeners
-
     socket.on("onlineUsers", (count) => {
       console.log("Online users count:", count);
       setOnlineUserCount(count);
@@ -66,14 +67,20 @@ function App() {
 
     socket.on("waiting", () => {
       setCurrentScreen("waiting");
+      setCurrentPartnerId(null);
+      setIsVideoChat(false);
     });
 
-    socket.on("chatStart", () => {
+    socket.on("chatStart", (data) => {
+      const { withVideo } = data || {};
       setCurrentScreen("chat");
-      console.log("✅ Chat started with", partnerId, "Video:", isVideo);
+      setIsVideoChat(withVideo);
+      setCurrentPartnerId(null); // Will be set when we get partner info
+      console.log("✅ Chat started, Video:", withVideo);
       setMessages([
         {
           type: "system",
+          text: "Connected to chat partner"
         },
       ]);
       socket.emit("ready-to-connect");
@@ -84,7 +91,8 @@ function App() {
       setMessages((prev) => [...prev, { text: data.text, type: messageType }]);
     });
 
-    socket.on("partnerLeft", () => {
+    socket.on("partnerLeft", (data) => {
+      console.log("Partner left:", data);
       setMessages((prev) => [
         ...prev,
         {
@@ -92,6 +100,10 @@ function App() {
           type: "system",
         },
       ]);
+
+      // Clear partner info
+      setCurrentPartnerId(null);
+      setIsVideoChat(false);
 
       // Auto-restart chat after 2 seconds
       setTimeout(() => {
@@ -101,7 +113,6 @@ function App() {
         );
       }, 2000);
     });
-
 
     socket.on("error", (message) => {
       alert(message);
@@ -141,7 +152,9 @@ function App() {
       setVideoEnabled(false);
     }
 
-    socket.connect();
+    if (!socket.connected) {
+      socket.connect();
+    }
     socket.emit("findChat", email, withVideo);
     setCurrentScreen("waiting");
   };
@@ -153,8 +166,16 @@ function App() {
   };
 
   const handleNextChat = () => {
-    socket.emit("next");
+    // Clear current chat state
     setMessages([]);
+    setCurrentPartnerId(null);
+    setIsVideoChat(false);
+    
+    // Emit next event to server
+    socket.emit("next");
+    
+    // Set to waiting state
+    setCurrentScreen("waiting");
   };
 
   const toggleVideo = () => {
@@ -204,10 +225,9 @@ function App() {
             }
             goBack={() => setCurrentScreen("home")}
             onLogout={logout}
-            onlineUserCount={onlineUserCount} // ✅ This must be here!
+            onlineUserCount={onlineUserCount}
           />
         );
-
 
       case "waiting":
         return (
@@ -231,16 +251,14 @@ function App() {
             messages={messages}
             onSendMessage={handleSendMessage}
             onNext={handleNextChat}
-            videoEnabled={videoEnabled}
+            videoEnabled={videoEnabled && isVideoChat}
             toggleVideo={toggleVideo}
             socketId={socket.id}
             onLogout={logout}
             endCall={() => {
               setCurrentScreen("start");
               socket.emit("disconnect");
-            }
-
-            }
+            }}
           />
         );
 

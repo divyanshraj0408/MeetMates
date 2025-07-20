@@ -124,9 +124,10 @@ let rtcReadyUsers = new Set();
 // Track authenticated users
 let authenticatedUsers = new Map(); // socketId -> user info
 let onlineUsers = 0;
-io.on("connection", (socket) => {
 
-  console.log("New user connected:", socket.id);
+io.on("connection", (socket) => {
+  onlineUsers++;
+  console.log("New user connected:", socket.id, "Total online users:", onlineUsers);
 
   // Store user info if authenticated
   if (socket.userId) {
@@ -137,53 +138,28 @@ io.on("connection", (socket) => {
     });
     console.log(`Authenticated user connected: ${socket.userEmail}`);
   }
-  io.on("connection", (socket) => {
-    onlineUsers++;
-    console.log("User connected:", socket.id, "Total online users:", onlineUsers);
-    io.emit("onlineUsers", onlineUsers); // broadcast updated count
 
-    socket.on("disconnect", () => {
-      onlineUsers = Math.max(onlineUsers - 1, 0);
-      console.log(`User ${socket.id} disconnected`);
-
-      // If the user is in a chat
-      if (chatPairs[socket.id]) {
-        const partnerId = chatPairs[socket.id].partner;
-
-        // Inform the partner that the user has disconnected
-        if (partnerId && io.sockets.sockets.get(partnerId)) {
-          io.to(partnerId).emit("partnerLeft");
-
-          // Also remove partner from room
-          const room = chatPairs[socket.id].room;
-          io.sockets.sockets.get(partnerId)?.leave(room);
-
-          // Delete partner's mapping (clean up)
-          delete chatPairs[partnerId];
-        }
-
-        // Remove current user's mapping and room leave
-        socket.leave(chatPairs[socket.id].room);
-        delete chatPairs[socket.id];
-      }
-
-      // Notify all clients about updated count
-      io.emit("onlineUsers", onlineUsers);
-    });
-  });
+  // Broadcast updated online count to all clients
+  io.emit("onlineUsers", onlineUsers);
 
   // Enhanced findChat with authentication info
   socket.on("findChat", (collegeEmail, withVideo = false) => {
     // Use authenticated email if available, otherwise use provided email
     const userEmail = socket.userEmail || collegeEmail;
 
+    // Clean up existing chat if user is already in one
     if (chatPairs[socket.id]) {
       const partner = chatPairs[socket.id].partner;
-      io.to(partner).emit("partnerLeft");
-      delete chatPairs[socket.id];
-      delete chatPairs[partner];
+      if (partner && io.sockets.sockets.get(partner)) {
+        io.to(partner).emit("partnerLeft", { partnerId: socket.id });
+      }
+      cleanupChatPair(socket.id);
     }
 
+    // Remove from waiting list if already there
+    waitingUsers = waitingUsers.filter(id => id !== socket.id);
+    
+    // Add to waiting list
     waitingUsers.push(socket.id);
     withVideo
       ? videoEnabledUsers.add(socket.id)
@@ -207,35 +183,43 @@ io.on("connection", (socket) => {
   });
 
   socket.on("next", () => {
-  if (chatPairs[socket.id]) {
-    const partner = chatPairs[socket.id].partner;
-    const room = chatPairs[socket.id].room;
+    console.log(`User ${socket.id} clicked next`);
+    
+    if (chatPairs[socket.id]) {
+      const partnerId = chatPairs[socket.id].partner;
+      const room = chatPairs[socket.id].room;
 
-    // Notify both users that their partner left
-    io.to(partner).emit("partnerLeft", { partnerId: socket.id });
-    io.to(socket.id).emit("partnerLeft", { partnerId: partner });
+      // Notify partner that user left
+      if (partnerId && io.sockets.sockets.get(partnerId)) {
+        io.to(partnerId).emit("partnerLeft", { partnerId: socket.id });
+      }
 
-    // Leave room
-    socket.leave(room);
-    io.sockets.sockets.get(partner)?.leave(room);
+      // Clean up the chat pair
+      cleanupChatPair(socket.id);
 
-    // Clean up
-    delete chatPairs[socket.id];
-    delete chatPairs[partner];
+      // Add both users back to waiting queue
+      waitingUsers.push(socket.id);
+      if (partnerId && io.sockets.sockets.get(partnerId)) {
+        waitingUsers.push(partnerId);
+        io.to(partnerId).emit("waiting");
+      }
 
-    // Requeue
-    waitingUsers.push(socket.id);
-    waitingUsers.push(partner);
+      // Current user goes to waiting
+      socket.emit("waiting");
 
-    // Let both know they're waiting now
-    socket.emit("waiting");
-    io.sockets.sockets.get(partner)?.emit("waiting");
-
-    // Try rematching
-    matchUsers();
-  }
-});
-
+      // Try to match users again
+      setTimeout(() => {
+        matchUsers();
+      }, 100);
+    } else {
+      // User not in a chat, just add to waiting
+      if (!waitingUsers.includes(socket.id)) {
+        waitingUsers.push(socket.id);
+      }
+      socket.emit("waiting");
+      matchUsers();
+    }
+  });
 
   // WebRTC Signaling Handlers
   socket.on("ready-to-connect", () => {
@@ -283,7 +267,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+    onlineUsers = Math.max(onlineUsers - 1, 0);
+    console.log(`User ${socket.id} disconnected. Total online users: ${onlineUsers}`);
 
     // Clean up user data
     authenticatedUsers.delete(socket.id);
@@ -291,14 +276,49 @@ io.on("connection", (socket) => {
     videoEnabledUsers.delete(socket.id);
     rtcReadyUsers.delete(socket.id);
 
+    // Handle chat pair cleanup
     if (chatPairs[socket.id]) {
-      const partner = chatPairs[socket.id].partner;
-      io.to(partner).emit("partnerLeft");
-      delete chatPairs[socket.id];
-      delete chatPairs[partner];
+      const partnerId = chatPairs[socket.id].partner;
+      if (partnerId && io.sockets.sockets.get(partnerId)) {
+        io.to(partnerId).emit("partnerLeft", { partnerId: socket.id });
+      }
+      cleanupChatPair(socket.id);
     }
+
+    // Broadcast updated online count
+    io.emit("onlineUsers", onlineUsers);
   });
 });
+
+function cleanupChatPair(socketId) {
+  if (chatPairs[socketId]) {
+    const partnerId = chatPairs[socketId].partner;
+    const room = chatPairs[socketId].room;
+
+    // Remove both users from room
+    const socket = io.sockets.sockets.get(socketId);
+    const partnerSocket = io.sockets.sockets.get(partnerId);
+    
+    if (socket) {
+      socket.leave(room);
+    }
+    if (partnerSocket) {
+      partnerSocket.leave(room);
+    }
+
+    // Clean up WebRTC ready status
+    rtcReadyUsers.delete(socketId);
+    rtcReadyUsers.delete(partnerId);
+
+    // Remove chat pair mappings
+    delete chatPairs[socketId];
+    if (partnerId) {
+      delete chatPairs[partnerId];
+    }
+
+    console.log(`Cleaned up chat pair: ${socketId} and ${partnerId}`);
+  }
+}
 
 function matchUsers() {
   matchUsersByVideoPreference();
@@ -315,17 +335,16 @@ function matchUsersByVideoPreference() {
     const user1 = videoUsers.shift();
     const user2 = videoUsers.shift();
     waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
-    createChatPair(user1, user2, true); // ✅ pass true for video chat
+    createChatPair(user1, user2, true);
   }
 
   while (textOnlyUsers.length >= 2) {
     const user1 = textOnlyUsers.shift();
     const user2 = textOnlyUsers.shift();
     waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
-    createChatPair(user1, user2, false); // ✅ pass false for text-only
+    createChatPair(user1, user2, false);
   }
 }
-
 
 function matchRemainingUsers() {
   while (waitingUsers.length >= 2) {
@@ -355,8 +374,8 @@ function createChatPair(user1, user2, withVideo) {
   socket1.join(roomId);
   socket2.join(roomId);
 
-  io.to(user1).emit("chatStart", { withVideo });
-  io.to(user2).emit("chatStart", { withVideo });
+  io.to(user1).emit("chatStart", { withVideo, partnerId: user2 });
+  io.to(user2).emit("chatStart", { withVideo, partnerId: user1 });
 
   const user1Info = authenticatedUsers.get(user1);
   const user2Info = authenticatedUsers.get(user2);

@@ -69,7 +69,7 @@ function StartPage({ onStartChat, onLogout, onlineUserCount,loading }) {
                 </div>
             <div className="text-chat-section1 globalchat-container">
               <div className="messages-container">
-                Global Chat Comming soon...
+                Global Chat Coming soon...
               </div>
               <form className="message-form">
                 <textarea
