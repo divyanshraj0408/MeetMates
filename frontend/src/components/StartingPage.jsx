@@ -44,8 +44,8 @@ function StartPage({ onStartChat, onLogout, onlineUserCount,loading }) {
       <div className="content">
         {/* Left Section */}
         <div className="left-box">
-          <p className="status" style={{display: 'flex', alignItems: 'center'}}>
-            <img src="https://em-content.zobj.net/source/apple/419/large-green-circle_1f7e2.png" alt="🟢" style={{ width: "20px", marginRight: "8px" }} /> {onlineUserCount} making sure she’s ok
+          <p className="status" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
+            <img src="https://em-content.zobj.net/source/apple/419/sneezing-face_1f927.png" alt="🟢" style={{ width: "20px", marginRight: "8px" }} /> {onlineUserCount} making sure she’s ok.
           </p>
 
           <div className="filters">
