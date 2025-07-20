@@ -44,17 +44,25 @@ function StartPage({ onStartChat, onLogout, onlineUserCount,loading }) {
       <div className="content">
         {/* Left Section */}
         <div className="left-box">
-          <p className="status">🟢 {onlineUserCount} making sure she’s ok</p>
+          <p className="status" style={{display: 'flex', alignItems: 'center'}}>
+            <img src="https://em-content.zobj.net/source/apple/419/large-green-circle_1f7e2.png" alt="🟢" style={{ width: "20px", marginRight: "8px" }} /> {onlineUserCount} making sure she’s ok
+          </p>
 
           <div className="filters">
-            <div className="filter"> 👨‍🦰 👩‍🦰Anybody</div>
-            <div className="filter">🌍 All ADGIPS</div>
+            <div className="filter" style={{display: 'flex', alignItems: 'center'}}>
+              <img src="https://em-content.zobj.net/source/apple/419/man_1f468.png" alt="" style={{ width: "20px" }} />
+              <img src="https://em-content.zobj.net/source/apple/419/woman-red-hair_1f469-200d-1f9b0.png" alt="" style={{ width: "20px" , marginRight: "8px"}} /> Anybody
+            </div>
+            <div className="filter" style={{display: 'flex', alignItems: 'center'}}>
+              <img src="https://em-content.zobj.net/source/apple/419/globe-showing-asia-australia_1f30f.png" alt="" style={{ width: "20px", marginRight: "8px" }} /> 
+              <p style={{ margin: 0 }}>Worldwide</p>
+            </div>
           </div>
 
-          <button className="vibe-btn" onClick={onStartChat}>{ loading ? <div className="loader" /> : "Lets Vibe" }</button>
-        </div>
-
-        {/* Right Section (actual local video preview) */}
+          <button className="vibe-btn" onClick={onStartChat} disabled={loading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {loading ? <div className="loader" /> : <>Lets Vibe <img src="https://em-content.zobj.net/source/apple/419/high-voltage_26a1.png" style={{ width: "20px",marginLeft:"8px" }} alt="vibe" /></>}
+          </button>
+        </div> 
         <div className="right-box">
           <div className="video-preview">
             <video ref={videoRef} autoPlay muted playsInline style={{ maxWidth: '100%', borderRadius: '10px', minHeight: '100%' }} />

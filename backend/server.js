@@ -207,34 +207,34 @@ io.on("connection", (socket) => {
   });
 
   socket.on("next", () => {
-    if (chatPairs[socket.id]) {
-      const partner = chatPairs[socket.id].partner;
-      const room = chatPairs[socket.id].room;
+  if (chatPairs[socket.id]) {
+    const partner = chatPairs[socket.id].partner;
+    const room = chatPairs[socket.id].room;
 
-      // Notify both users their partner left
-      io.to(partner).emit("partnerLeft");
-      io.to(socket.id).emit("partnerLeft");
+    // Notify both users that their partner left
+    io.to(partner).emit("partnerLeft", { partnerId: socket.id });
+    io.to(socket.id).emit("partnerLeft", { partnerId: partner });
 
-      // Both users leave the room
-      socket.leave(room);
-      io.sockets.sockets.get(partner)?.leave(room);
+    // Leave room
+    socket.leave(room);
+    io.sockets.sockets.get(partner)?.leave(room);
 
-      // Clean up chatPairs
-      delete chatPairs[socket.id];
-      delete chatPairs[partner];
+    // Clean up
+    delete chatPairs[socket.id];
+    delete chatPairs[partner];
 
-      // Push both back to waiting queue
-      waitingUsers.push(socket.id);
-      waitingUsers.push(partner);
+    // Requeue
+    waitingUsers.push(socket.id);
+    waitingUsers.push(partner);
 
-      // Notify both users to show "waiting" screen
-      socket.emit("waiting");
-      io.sockets.sockets.get(partner)?.emit("waiting");
+    // Let both know they're waiting now
+    socket.emit("waiting");
+    io.sockets.sockets.get(partner)?.emit("waiting");
 
-      // Attempt to match both users again
-      matchUsers();
-    }
-  });
+    // Try rematching
+    matchUsers();
+  }
+});
 
 
   // WebRTC Signaling Handlers
