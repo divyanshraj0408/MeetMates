@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import socket from "../Socket";
-import { Video, VideoOff, Mic, MicOff } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, PhoneOff } from 'lucide-react';
 
 import "./videochat.css";
 
@@ -399,10 +399,13 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
                 {isMuted ? (
                   <MicOff
                     size={window.innerWidth < 600 ? 16 : 22}
+                    strokeWidth={1.2}
                   />
                 ) : (
                   <Mic
                     size={window.innerWidth < 600 ? 16 : 22}
+                    strokeWidth={1.5}
+
                   />
                 )}
               </button>
@@ -418,15 +421,19 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
                 {isCameraOff ? (
                   <VideoOff
                     size={window.innerWidth < 600 ? 16 : 22}
+                    strokeWidth={1.2}
+
                   />
                 ) : (
                   <Video
                     size={window.innerWidth < 600 ? 16 : 22}
+                    strokeWidth={1.5}
+
                   />
                 )}
               </button>
-              <button className="control-btn hide-video-btn" style={{ padding: "8px" }} onClick={endCall}>
-                Bye
+              <button className="control-btn hide-video-btn" onClick={endCall}>
+                <PhoneOff size={window.innerWidth < 600 ? 16 : 22} strokeWidth={1.5} />
               </button>
             </div>
           </div>

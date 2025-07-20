@@ -315,16 +315,17 @@ function matchUsersByVideoPreference() {
     const user1 = videoUsers.shift();
     const user2 = videoUsers.shift();
     waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
-    createChatPair(user1, user2, true);
+    createChatPair(user1, user2, true); // ✅ pass true for video chat
   }
 
   while (textOnlyUsers.length >= 2) {
     const user1 = textOnlyUsers.shift();
     const user2 = textOnlyUsers.shift();
     waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
-    createChatPair(user1, user2, false);
+    createChatPair(user1, user2, false); // ✅ pass false for text-only
   }
 }
+
 
 function matchRemainingUsers() {
   while (waitingUsers.length >= 2) {

@@ -40,6 +40,8 @@
   width: 60px;
   border-radius: 20px !important;
   background-color: #FF1F23 !important;
+  border: 1px solid #36353533 !important;
+  cursor: pointer;
 }
 @media (max-width: 768px) {
   .video-grid {
@@ -145,6 +147,12 @@
   left: 50%;
   transform: translateX(-50%);
   /* margin: 15px; */
+    background: rgba(255, 255, 255, 0.1); /* semi-transparent background */
+  border-radius: 32px;                  /* rounded corners */
+  backdrop-filter: blur(10px);         /* blur the background behind */
+  -webkit-backdrop-filter: blur(10px); /* for Safari */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* subtle border */
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);  /* soft shadow */
 }
 
 .control-btn {
@@ -157,12 +165,18 @@
   /* font-size: 1rem; */
   transition: transform 0.2s, box-shadow 0.2s;
   margin: 8px;
+  background: rgba(255, 255, 255, 0.18); /* semi-transparent background */
+  border-radius: 32px;                  /* rounded corners */
+  backdrop-filter: blur(10px);         /* blur the background behind */
+  -webkit-backdrop-filter: blur(10px); /* for Safari */
+  border: 1px solid #ffffff33; /* subtle border */
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);  /* soft shadow */
 }
 
-.control-btn:hover {
+/* .control-btn:hover {
   transform: translateX(-2px) translateY(-2px);
   box-shadow: 2px 2px 0px var(--border);
-}
+} */
 
 .control-btn:active {
   transform: translateX(0) translateY(0);
@@ -170,7 +184,12 @@
 }
 
 .control-off {
-  background-color: var(--accent);
+  background: rgba(231, 22, 22, 0.5); /* semi-transparent background */
+  /* border-radius: 32px;                  rounded corners */
+  backdrop-filter: blur(10px);         /* blur the background behind */
+  -webkit-backdrop-filter: blur(10px); /* for Safari */
+  border: 1px solid rgba(225, 57, 57, 0.2); /* subtle border */
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);  /* soft shadow */
 }
 
 /* Text Chat Section */

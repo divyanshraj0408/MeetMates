@@ -70,11 +70,13 @@ function App() {
 
     socket.on("chatStart", () => {
       setCurrentScreen("chat");
+      console.log("✅ Chat started with", partnerId, "Video:", isVideo);
       setMessages([
         {
           type: "system",
         },
       ]);
+      socket.emit("ready-to-connect");
     });
 
     socket.on("message", (data) => {
