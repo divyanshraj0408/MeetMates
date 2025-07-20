@@ -1,15 +1,15 @@
 # Pingo 🎥 | College-Exclusive Video Chat  
 
-Pingo is a **college-exclusive** platform that allows students to connect via **random video calls**. By using their **college email IDs** for authentication, students can interact in a **safe and verified** environment, fostering new connections within the campus.  
+### Pingo is a college-exclusive platform that allows students to connect via random video calls. By using their college email IDs for authentication, students can interact in a safe and verified environment, fostering new connections within the campus.  
 ---
 ## 🚀 Features  
 
-✅ **College Email Authentication** – Ensures only students from the college can join.  
-✅ **Random Video Matching** – Connects users with a random peer for seamless conversations.  
-✅ **Real-Time Video Streaming** – Powered by **WebRTC** for smooth peer-to-peer communication.  
-✅ **Secure & Private** – Prevents unauthorized access and ensures data privacy.  
-✅ **Minimal & Intuitive UI** – A simple, distraction-free interface for easy interaction.  
-✅ **Abuse Prevention** – Includes **reporting & blocking** features to maintain a positive experience.  
+1. **College Email Authentication** – Ensures only students from the college can join.  
+2. **Random Video Matching** – Connects users with a random peer for seamless conversations.  
+3. **Real-Time Video Streaming** – Powered by **WebRTC** for smooth peer-to-peer communication.  
+4. **Secure & Private** – Prevents unauthorized access and ensures data privacy.  
+5. **Minimal & Intuitive UI** – A simple, distraction-free interface for easy interaction.  
+6. **Abuse Prevention** – Includes **reporting & blocking** features to maintain a positive experience.  
 ---
 ## 🧠 How It Works
 
@@ -35,7 +35,7 @@ Pingo is a **college-exclusive** platform that allows students to connect via **
 
 ## 🛠️ Tech Stack  
 
-- **Frontend:** React (Vite) + Tailwind CSS  
+- **Frontend:** React (Vite)  
 - **Backend:** Node.js + Express  
 - **Database:** MongoDB (Mongoose ORM)  
 - **Real-Time Communication:** WebRTC + Socket.io  
@@ -43,7 +43,7 @@ Pingo is a **college-exclusive** platform that allows students to connect via **
 
 ## 🔧 Installation & Setup  
 
-### 1️⃣ Clone the Repository  
+### Clone the Repository  
 ```bash
 git clone https://github.com/your-username/meetmates.git
 cd meetmates
@@ -57,7 +57,7 @@ cd backend
 npm install
 cd ..
 ```
-### Install Dependencies
+### Set Environment Variables
 Frontend (`frontend/.env`)
 ```
 VITE_BACKEND_URL=http://localhost:3001
