@@ -1,7 +1,7 @@
-# Meetmates 🎥 | College-Exclusive Video Chat  
+# Pingo 🎥 | College-Exclusive Video Chat  
 
-Meetmates is a **college-exclusive** platform that allows students to connect via **random video calls**. By using their **college email IDs** for authentication, students can interact in a **safe and verified** environment, fostering new connections within the campus.  
-
+Pingo is a **college-exclusive** platform that allows students to connect via **random video calls**. By using their **college email IDs** for authentication, students can interact in a **safe and verified** environment, fostering new connections within the campus.  
+---
 ## 🚀 Features  
 
 ✅ **College Email Authentication** – Ensures only students from the college can join.  
@@ -10,6 +10,28 @@ Meetmates is a **college-exclusive** platform that allows students to connect vi
 ✅ **Secure & Private** – Prevents unauthorized access and ensures data privacy.  
 ✅ **Minimal & Intuitive UI** – A simple, distraction-free interface for easy interaction.  
 ✅ **Abuse Prevention** – Includes **reporting & blocking** features to maintain a positive experience.  
+---
+## 🧠 How It Works
+
+1. **Authentication**:  
+   Users sign in using Google OAuth restricted to college email domains. Their token is validated on the backend (`/api/verify-token`) before connecting to the Socket.IO server.
+
+2. **Matching**:  
+   Users can opt for a video or audio-only chat. When they click "Start Chat", a `findChat` event is emitted. The server then pairs them with another waiting user.
+
+3. **Connection Setup**:  
+   If video is enabled, Pingo establishes a **WebRTC** peer-to-peer connection between the two users, allowing low-latency video communication. If not, only text-based messaging is enabled.
+
+4. **Chat Session**:  
+   Once connected, users can chat freely. Messages are relayed via `sendMessage` and `message` events. The UI handles rendering local/remote streams and chat history.
+
+5. **Next/Leave**:  
+   Clicking "Next" or leaving the session triggers a disconnect from the current room. The app resets the state and automatically searches for a new partner.
+
+6. **Safety**:  
+   Users can report/exit at any time. The backend supports blocking or moderation enhancements.
+
+---
 
 ## 🛠️ Tech Stack  
 
@@ -28,11 +50,25 @@ cd meetmates
 ```
 ### Install Dependencies
 ```
-cd client
+cd frontend
 npm install
 cd ..
-cd server
+cd backend
 npm install
+cd ..
+```
+### Install Dependencies
+Frontend (`frontend/.env`)
+```
+VITE_BACKEND_URL=http://localhost:3001
+VITE_GOOGLE_CLIENT_ID=get client id from google auth
+```
+Backend (`backend/.env`)
+```
+MONGODB_URI=mongodburl
+JWT_SECRET=jwt
+CORS_ORIGIN=http://localhost:5173,https://www.meetmates.space
+PORT=3001
 ```
 ### 🎯 Future Enhancements
 
