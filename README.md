@@ -30,6 +30,7 @@
 
 6. **Safety**:  
    Users can report/exit at any time. The backend supports blocking or moderation enhancements.
+<img width="1585" height="748" alt="image" src="https://github.com/user-attachments/assets/1f08cc1f-c1ab-4b93-8ce0-98296cb62bf0" />
 
 ---
 
