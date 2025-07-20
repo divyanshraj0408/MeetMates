@@ -21,7 +21,7 @@
   padding: 15px 20px;
   background-color: #ffea00;
   /* color: var(--primary-foreground); */
-  border-radius: 12px 12px 0 0;
+  /* border-radius: 12px 12px 0 0; */
 }
 
 .chat-header h2 {
