@@ -343,9 +343,7 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
 
 
   return (
-
     <div className="video-chat-container">
-
       <div className="video-grid">
         <div className="video-box remote-video">
           <video ref={remoteVideoRef} autoPlay playsInline />
@@ -383,7 +381,8 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
               ref={localVideoRef}
               autoPlay
               playsInline
-              muted // Always mute local video to prevent echo
+              muted
+              style={{ transform: "none" }} // Remove any flipping
             />
             <div className="video-label">You</div>
             <div className="video-controls">
@@ -405,7 +404,6 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
                   <Mic
                     size={window.innerWidth < 600 ? 16 : 22}
                     strokeWidth={1.5}
-
                   />
                 )}
               </button>
@@ -422,13 +420,11 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
                   <VideoOff
                     size={window.innerWidth < 600 ? 16 : 22}
                     strokeWidth={1.2}
-
                   />
                 ) : (
                   <Video
                     size={window.innerWidth < 600 ? 16 : 22}
                     strokeWidth={1.5}
-
                   />
                 )}
               </button>
