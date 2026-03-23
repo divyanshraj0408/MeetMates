@@ -16,8 +16,7 @@ const { authMiddleware, optionalAuth } = require("./middleware/auth.js");
 const app = express();
 const server = http.createServer(app);
 
-// Allow local + production origins
-const allowedOrigins = ["http://localhost:5173", "https://www.meetmates.space"];
+const allowedOrigins = ["http://localhost:5173", "https://www.meetmates.space", "https://meet-mates.vercel.app"];
 
 app.use(
   cors({
@@ -35,7 +34,6 @@ app.use(
 
 app.use(express.json());
 
-// Connect MongoDB
 mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
@@ -44,11 +42,9 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-// Register routes (auth routes don't need middleware since they handle their own auth)
 app.use("/api/auth", authRoutes);
 app.use("/api/auth", imageAuthRoute);
 
-// Protected routes example (add these as you create more features)
 app.get("/api/profile", authMiddleware, (req, res) => {
   res.json({
     success: true,
@@ -57,40 +53,32 @@ app.get("/api/profile", authMiddleware, (req, res) => {
       email: req.user.email,
       name: req.user.name,
       profilePicture: req.user.profilePicture,
-      isGoogleUser: req.user.isGoogleUser
-    }
+      isGoogleUser: req.user.isGoogleUser,
+    },
   });
 });
 
-// Optional: Add a route to verify token validity
 app.get("/api/verify-token", authMiddleware, (req, res) => {
   res.json({
     success: true,
     message: "Token is valid",
-    user: {
-      id: req.user._id,
-      email: req.user.email,
-      name: req.user.name
-    }
+    user: { id: req.user._id, email: req.user.email, name: req.user.name },
   });
 });
 
-// Socket.IO Authentication Middleware
 const socketAuthMiddleware = async (socket, next) => {
   try {
-    const token = socket.handshake.auth.token || socket.handshake.headers.authorization;
+    const token =
+      socket.handshake.auth.token || socket.handshake.headers.authorization;
 
     if (!token) {
       return next(new Error("Authentication token required"));
     }
 
-    // Remove 'Bearer ' prefix if present
-    const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
-
+    const cleanToken = token.startsWith("Bearer ")
+      ? token.substring(7)
+      : token;
     const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET);
-
-    // You could fetch user from database here if needed
-    // const user = await User.findById(decoded.userId);
 
     socket.userId = decoded.userId;
     socket.userEmail = decoded.email;
@@ -103,11 +91,8 @@ const socketAuthMiddleware = async (socket, next) => {
   }
 };
 
-// Apply authentication to socket connections
-// Comment out the line below if you want to allow unauthenticated socket connections
-// io.use(socketAuthMiddleware);
+// io.use(socketAuthMiddleware); // uncomment to require auth
 
-// Socket.IO setup
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -119,35 +104,41 @@ const io = new Server(server, {
 let waitingUsers = [];
 let videoEnabledUsers = new Set();
 let chatPairs = {};
-// Track users who are ready for WebRTC connection
 let rtcReadyUsers = new Set();
-// Track authenticated users
-let authenticatedUsers = new Map(); // socketId -> user info
-let onlineUsers = 0;
+let authenticatedUsers = new Map();
+
+// FIX 3: Track users that recently clicked "next" so they can't be immediately
+// re-paired with the same person. The set is keyed by socketId and cleared
+// after a short cooldown window.
+const nextCooldownUsers = new Set();
+const NEXT_COOLDOWN_MS = 1500;
+
+// Derive onlineUsers from the actual connected socket count instead of a
+// manually incremented integer that can drift.
+const getOnlineCount = () => io.sockets.sockets.size;
 
 io.on("connection", (socket) => {
-  onlineUsers++;
-  console.log("New user connected:", socket.id, "Total online users:", onlineUsers);
+  console.log(
+    "New user connected:",
+    socket.id,
+    "Total online users:",
+    getOnlineCount()
+  );
 
-  // Store user info if authenticated
   if (socket.userId) {
     authenticatedUsers.set(socket.id, {
       userId: socket.userId,
       email: socket.userEmail,
-      isGoogleUser: socket.isGoogleUser
+      isGoogleUser: socket.isGoogleUser,
     });
     console.log(`Authenticated user connected: ${socket.userEmail}`);
   }
 
-  // Broadcast updated online count to all clients
-  io.emit("onlineUsers", onlineUsers);
+  io.emit("onlineUsers", getOnlineCount());
 
-  // Enhanced findChat with authentication info
   socket.on("findChat", (collegeEmail, withVideo = false) => {
-    // Use authenticated email if available, otherwise use provided email
     const userEmail = socket.userEmail || collegeEmail;
 
-    // Clean up existing chat if user is already in one
     if (chatPairs[socket.id]) {
       const partner = chatPairs[socket.id].partner;
       if (partner && io.sockets.sockets.get(partner)) {
@@ -156,10 +147,7 @@ io.on("connection", (socket) => {
       cleanupChatPair(socket.id);
     }
 
-    // Remove from waiting list if already there
-    waitingUsers = waitingUsers.filter(id => id !== socket.id);
-    
-    // Add to waiting list
+    waitingUsers = waitingUsers.filter((id) => id !== socket.id);
     waitingUsers.push(socket.id);
     withVideo
       ? videoEnabledUsers.add(socket.id)
@@ -176,43 +164,50 @@ io.on("connection", (socket) => {
       io.to(chatPairs[socket.id].room).emit("message", {
         sender: socket.id,
         text: message,
-        senderEmail: userInfo?.email || 'Anonymous',
-        timestamp: new Date().toISOString()
+        senderEmail: userInfo?.email || "Anonymous",
+        timestamp: new Date().toISOString(),
       });
     }
   });
 
   socket.on("next", () => {
     console.log(`User ${socket.id} clicked next`);
-    
+
     if (chatPairs[socket.id]) {
       const partnerId = chatPairs[socket.id].partner;
-      const room = chatPairs[socket.id].room;
 
-      // Notify partner that user left
       if (partnerId && io.sockets.sockets.get(partnerId)) {
         io.to(partnerId).emit("partnerLeft", { partnerId: socket.id });
       }
 
-      // Clean up the chat pair
       cleanupChatPair(socket.id);
 
-      // Add both users back to waiting queue
+      // FIX 3: Mark both users as "in cooldown" before re-adding them to the
+      // waiting queue. matchUsers will skip pairing any two users that are
+      // both still in cooldown — preventing them from being matched together
+      // again immediately.
+      nextCooldownUsers.add(socket.id);
+      setTimeout(() => nextCooldownUsers.delete(socket.id), NEXT_COOLDOWN_MS);
+
       waitingUsers.push(socket.id);
+      socket.emit("waiting");
+
       if (partnerId && io.sockets.sockets.get(partnerId)) {
+        nextCooldownUsers.add(partnerId);
+        setTimeout(
+          () => nextCooldownUsers.delete(partnerId),
+          NEXT_COOLDOWN_MS
+        );
+
         waitingUsers.push(partnerId);
         io.to(partnerId).emit("waiting");
       }
 
-      // Current user goes to waiting
-      socket.emit("waiting");
-
-      // Try to match users again
-      setTimeout(() => {
-        matchUsers();
-      }, 100);
+      // Give both clients a moment to process "waiting" before we try to pair
+      // them. The cooldown set ensures they won't be paired with each other
+      // even if matchUsers runs before the timeout expires.
+      setTimeout(() => matchUsers(), NEXT_COOLDOWN_MS);
     } else {
-      // User not in a chat, just add to waiting
       if (!waitingUsers.includes(socket.id)) {
         waitingUsers.push(socket.id);
       }
@@ -220,14 +215,32 @@ io.on("connection", (socket) => {
       matchUsers();
     }
   });
+  socket.on("leaveChat", () => {
+    console.log(`User ${socket.id} ended the call (left permanently)`);
 
-  // WebRTC Signaling Handlers
+    if (chatPairs[socket.id]) {
+      const partnerId = chatPairs[socket.id].partner;
+
+      // Notify partner their match left
+      if (partnerId && io.sockets.sockets.get(partnerId)) {
+        io.to(partnerId).emit("partnerLeft", { partnerId: socket.id });
+        // Put the PARTNER back in queue — they didn't leave
+        waitingUsers.push(partnerId);
+        io.to(partnerId).emit("waiting");
+        setTimeout(() => matchUsers(), 100);
+      }
+
+      cleanupChatPair(socket.id);
+    }
+
+    // Remove from waiting queue entirely — do NOT requeue this user
+    waitingUsers = waitingUsers.filter((id) => id !== socket.id);
+  });
   socket.on("ready-to-connect", () => {
     rtcReadyUsers.add(socket.id);
 
     if (chatPairs[socket.id]) {
       const partnerId = chatPairs[socket.id].partner;
-
       if (rtcReadyUsers.has(partnerId)) {
         if (socket.id < partnerId) {
           socket.emit("create-offer");
@@ -239,44 +252,35 @@ io.on("connection", (socket) => {
   socket.on("webrtc-offer", (data) => {
     if (chatPairs[socket.id]) {
       const partnerId = chatPairs[socket.id].partner;
-      io.to(partnerId).emit("webrtc-offer", {
-        offer: data.offer,
-        from: socket.id,
-      });
+      io.to(partnerId).emit("webrtc-offer", { offer: data.offer, from: socket.id });
     }
   });
 
   socket.on("webrtc-answer", (data) => {
     if (chatPairs[socket.id]) {
       const partnerId = chatPairs[socket.id].partner;
-      io.to(partnerId).emit("webrtc-answer", {
-        answer: data.answer,
-        from: socket.id,
-      });
+      io.to(partnerId).emit("webrtc-answer", { answer: data.answer, from: socket.id });
     }
   });
 
   socket.on("ice-candidate", (data) => {
     if (chatPairs[socket.id]) {
       const partnerId = chatPairs[socket.id].partner;
-      io.to(partnerId).emit("ice-candidate", {
-        candidate: data.candidate,
-        from: socket.id,
-      });
+      io.to(partnerId).emit("ice-candidate", { candidate: data.candidate, from: socket.id });
     }
   });
 
   socket.on("disconnect", () => {
-    onlineUsers = Math.max(onlineUsers - 1, 0);
-    console.log(`User ${socket.id} disconnected. Total online users: ${onlineUsers}`);
+    console.log(
+      `User ${socket.id} disconnected. Total online users: ${getOnlineCount() - 1}`
+    );
 
-    // Clean up user data
     authenticatedUsers.delete(socket.id);
     waitingUsers = waitingUsers.filter((id) => id !== socket.id);
     videoEnabledUsers.delete(socket.id);
     rtcReadyUsers.delete(socket.id);
+    nextCooldownUsers.delete(socket.id);
 
-    // Handle chat pair cleanup
     if (chatPairs[socket.id]) {
       const partnerId = chatPairs[socket.id].partner;
       if (partnerId && io.sockets.sockets.get(partnerId)) {
@@ -285,39 +289,29 @@ io.on("connection", (socket) => {
       cleanupChatPair(socket.id);
     }
 
-    // Broadcast updated online count
-    io.emit("onlineUsers", onlineUsers);
+    io.emit("onlineUsers", getOnlineCount());
   });
 });
 
 function cleanupChatPair(socketId) {
-  if (chatPairs[socketId]) {
-    const partnerId = chatPairs[socketId].partner;
-    const room = chatPairs[socketId].room;
+  if (!chatPairs[socketId]) return;
 
-    // Remove both users from room
-    const socket = io.sockets.sockets.get(socketId);
-    const partnerSocket = io.sockets.sockets.get(partnerId);
-    
-    if (socket) {
-      socket.leave(room);
-    }
-    if (partnerSocket) {
-      partnerSocket.leave(room);
-    }
+  const partnerId = chatPairs[socketId].partner;
+  const room = chatPairs[socketId].room;
 
-    // Clean up WebRTC ready status
-    rtcReadyUsers.delete(socketId);
-    rtcReadyUsers.delete(partnerId);
+  const socket = io.sockets.sockets.get(socketId);
+  const partnerSocket = io.sockets.sockets.get(partnerId);
 
-    // Remove chat pair mappings
-    delete chatPairs[socketId];
-    if (partnerId) {
-      delete chatPairs[partnerId];
-    }
+  if (socket) socket.leave(room);
+  if (partnerSocket) partnerSocket.leave(room);
 
-    console.log(`Cleaned up chat pair: ${socketId} and ${partnerId}`);
-  }
+  rtcReadyUsers.delete(socketId);
+  if (partnerId) rtcReadyUsers.delete(partnerId);
+
+  delete chatPairs[socketId];
+  if (partnerId) delete chatPairs[partnerId];
+
+  console.log(`Cleaned up chat pair: ${socketId} and ${partnerId}`);
 }
 
 function matchUsers() {
@@ -327,32 +321,71 @@ function matchUsers() {
   }
 }
 
+// FIX 3 (cont): canPair returns false when both users are in the post-next
+// cooldown window, preventing an immediate re-match of the same two people.
+function canPair(id1, id2) {
+  return !(nextCooldownUsers.has(id1) && nextCooldownUsers.has(id2));
+}
+
 function matchUsersByVideoPreference() {
   const videoUsers = waitingUsers.filter((id) => videoEnabledUsers.has(id));
   const textOnlyUsers = waitingUsers.filter((id) => !videoEnabledUsers.has(id));
 
-  while (videoUsers.length >= 2) {
-    const user1 = videoUsers.shift();
-    const user2 = videoUsers.shift();
-    waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
-    createChatPair(user1, user2, true);
+  let i = 0;
+  while (i < videoUsers.length - 1) {
+    const user1 = videoUsers[i];
+    let matched = false;
+    for (let j = i + 1; j < videoUsers.length; j++) {
+      const user2 = videoUsers[j];
+      if (canPair(user1, user2)) {
+        videoUsers.splice(j, 1);
+        videoUsers.splice(i, 1);
+        waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
+        createChatPair(user1, user2, true);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) i++;
   }
 
-  while (textOnlyUsers.length >= 2) {
-    const user1 = textOnlyUsers.shift();
-    const user2 = textOnlyUsers.shift();
-    waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
-    createChatPair(user1, user2, false);
+  let k = 0;
+  while (k < textOnlyUsers.length - 1) {
+    const user1 = textOnlyUsers[k];
+    let matched = false;
+    for (let j = k + 1; j < textOnlyUsers.length; j++) {
+      const user2 = textOnlyUsers[j];
+      if (canPair(user1, user2)) {
+        textOnlyUsers.splice(j, 1);
+        textOnlyUsers.splice(k, 1);
+        waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
+        createChatPair(user1, user2, false);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) k++;
   }
 }
 
 function matchRemainingUsers() {
-  while (waitingUsers.length >= 2) {
-    const user1 = waitingUsers.shift();
-    const user2 = waitingUsers.shift();
-    const enableVideo =
-      videoEnabledUsers.has(user1) || videoEnabledUsers.has(user2);
-    createChatPair(user1, user2, enableVideo);
+  let i = 0;
+  while (i < waitingUsers.length - 1) {
+    const user1 = waitingUsers[i];
+    let matched = false;
+    for (let j = i + 1; j < waitingUsers.length; j++) {
+      const user2 = waitingUsers[j];
+      if (canPair(user1, user2)) {
+        waitingUsers.splice(j, 1);
+        waitingUsers.splice(i, 1);
+        const enableVideo =
+          videoEnabledUsers.has(user1) || videoEnabledUsers.has(user2);
+        createChatPair(user1, user2, enableVideo);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) i++;
   }
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import HomePage from "./components/HomePage";
 import Login from "./components/Login";
 import StartPage from "./components/StartingPage";
@@ -16,8 +16,11 @@ function App() {
   const [currentPartnerId, setCurrentPartnerId] = useState(null);
   const [isVideoChat, setIsVideoChat] = useState(false);
 
+  // FIX: Track when the user intentionally ends the call so that the
+  // partnerLeft handler doesn't auto-rejoin them into matchmaking.
+  const userLeftIntentionally = useRef(false);
+
   useEffect(() => {
-    // Auto-login and token verification
     const checkTokenAndAutoLogin = async () => {
       const token = localStorage.getItem("token");
       const email = localStorage.getItem("collegeEmail");
@@ -59,7 +62,6 @@ function App() {
 
     checkTokenAndAutoLogin();
 
-    // Socket event listeners
     socket.on("onlineUsers", (count) => {
       console.log("Online users count:", count);
       setOnlineUserCount(count);
@@ -73,14 +75,16 @@ function App() {
 
     socket.on("chatStart", (data) => {
       const { withVideo } = data || {};
+      // Reset the intentional leave flag whenever a new chat starts
+      userLeftIntentionally.current = false;
       setCurrentScreen("chat");
       setIsVideoChat(withVideo);
-      setCurrentPartnerId(null); // Will be set when we get partner info
+      setCurrentPartnerId(null);
       console.log("✅ Chat started, Video:", withVideo);
       setMessages([
         {
           type: "system",
-          text: "Connected to chat partner"
+          text: "Connected to chat partner",
         },
       ]);
       socket.emit("ready-to-connect");
@@ -101,17 +105,23 @@ function App() {
         },
       ]);
 
-      // Clear partner info
       setCurrentPartnerId(null);
       setIsVideoChat(false);
 
-      // Auto-restart chat after 2 seconds
-      setTimeout(() => {
-        handleStartChat(
-          localStorage.getItem("collegeEmail"),
-          localStorage.getItem("withVideo") === "true"
-        );
-      }, 2000);
+      // FIX: Only auto-rejoin matchmaking if WE didn't leave intentionally.
+      // If the user clicked "End Call", userLeftIntentionally is true and we
+      // stay on the start screen — we do NOT get pulled back into the queue.
+      if (!userLeftIntentionally.current) {
+        setTimeout(() => {
+          handleStartChat(
+            localStorage.getItem("collegeEmail"),
+            localStorage.getItem("withVideo") === "true"
+          );
+        }, 2000);
+      }
+
+      // Always reset the flag after handling
+      userLeftIntentionally.current = false;
     });
 
     socket.on("error", (message) => {
@@ -144,7 +154,9 @@ function App() {
         setMediaPermission(true);
         setVideoEnabled(true);
       } catch (err) {
-        alert("Camera or microphone permission denied. Chat will continue without video.");
+        alert(
+          "Camera or microphone permission denied. Chat will continue without video."
+        );
         setMediaPermission(false);
         setVideoEnabled(false);
       }
@@ -166,16 +178,20 @@ function App() {
   };
 
   const handleNextChat = () => {
-    // Clear current chat state
     setMessages([]);
     setCurrentPartnerId(null);
     setIsVideoChat(false);
-    
-    // Emit next event to server
     socket.emit("next");
-    
-    // Set to waiting state
     setCurrentScreen("waiting");
+  };
+
+  const handleEndCall = () => {
+    // FIX: Mark as intentional so partnerLeft doesn't auto-rejoin this user.
+    userLeftIntentionally.current = true;
+    // FIX: emit leaveChat (not the broken socket.emit("disconnect") no-op).
+    // Server will requeue the partner but NOT this user.
+    socket.emit("leaveChat");
+    setCurrentScreen("start");
   };
 
   const toggleVideo = () => {
@@ -255,10 +271,7 @@ function App() {
             toggleVideo={toggleVideo}
             socketId={socket.id}
             onLogout={logout}
-            endCall={() => {
-              setCurrentScreen("start");
-              socket.emit("disconnect");
-            }}
+            endCall={handleEndCall}
           />
         );
 

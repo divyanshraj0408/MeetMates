@@ -4,7 +4,7 @@ import { Video, VideoOff, Mic, MicOff, PhoneOff } from 'lucide-react';
 
 import "./videochat.css";
 
-function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onNext }) {
+function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, onNext }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
@@ -13,17 +13,19 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef(null);
 
-
-  // Keep track of whether we've already processed offers/answers
   const processedSignalsRef = useRef(new Set());
 
   const [connectionState, setConnectionState] = useState("new");
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
 
-  // ICE servers for WebRTC (STUN servers help with NAT traversal)
+  // FIX 1: Track attempts with a ref instead of state — state changes trigger
+  // the useEffect dependency, which was causing the ghost reconnect loop.
+  const connectionAttemptsRef = useRef(0);
+  // Keep a separate state only for the "show Reconnect button" UI.
+  const [showReconnectBtn, setShowReconnectBtn] = useState(false);
+
   const iceServers = {
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
@@ -32,37 +34,30 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
     ],
   };
 
-  // Function to create and initialize a new RTCPeerConnection
+  // createPeerConnection no longer emits ready-to-connect or touches state that
+  // would re-trigger the media setup effect.
   const createPeerConnection = () => {
-    // Close any existing connection first
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
     }
 
-    // Create new connection
     const pc = new RTCPeerConnection(iceServers);
     peerConnectionRef.current = pc;
-
-    // Clear processed signals
     processedSignalsRef.current = new Set();
 
-    // Add local tracks to the connection
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
         pc.addTrack(track, localStreamRef.current);
       });
     }
 
-    // Handle incoming remote tracks
     pc.ontrack = (event) => {
-      console.log("Remote track received", event.streams[0]);
       if (remoteVideoRef.current && event.streams[0]) {
         remoteVideoRef.current.srcObject = event.streams[0];
         setIsConnected(true);
       }
     };
 
-    // Track connection state changes
     pc.onconnectionstatechange = () => {
       const state = pc.connectionState;
       console.log("Connection state:", state);
@@ -70,33 +65,27 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
 
       if (state === "connected") {
         setIsConnected(true);
-      } else if (
-        state === "failed" ||
-        state === "disconnected" ||
-        state === "closed"
-      ) {
+        setShowReconnectBtn(false);
+      } else if (state === "failed" || state === "disconnected" || state === "closed") {
         setIsConnected(false);
 
-        // Retry connection if it fails (up to 3 times)
-        if (state === "failed" && connectionAttempts < 3) {
-          console.log(
-            `Connection failed. Retrying... (Attempt ${connectionAttempts + 1})`
-          );
+        // FIX 1 (cont): Use ref for attempt count — does NOT retrigger the effect.
+        if (state === "failed" && connectionAttemptsRef.current < 3) {
+          connectionAttemptsRef.current += 1;
+          console.log(`Connection failed. Retrying... (Attempt ${connectionAttemptsRef.current})`);
           setTimeout(() => {
-            setConnectionAttempts((prev) => prev + 1);
             createPeerConnection();
             socket.emit("ready-to-connect");
           }, 1000);
+        } else if (state === "failed") {
+          setShowReconnectBtn(true);
         }
       }
     };
 
-    // Generate ICE candidates
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        socket.emit("ice-candidate", {
-          candidate: event.candidate,
-        });
+        socket.emit("ice-candidate", { candidate: event.candidate });
       }
     };
 
@@ -111,13 +100,15 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
     return pc;
   };
 
+  // FIX 2: Media setup runs exactly ONCE on mount (empty dep array).
+  // Socket listeners are registered here once and cleaned up on unmount.
+  // Previously the effect re-ran on every connectionAttempts state change,
+  // re-registering listeners and re-emitting ready-to-connect each time.
   useEffect(() => {
     let isComponentMounted = true;
 
-    // Set up WebRTC connection
     const setupMediaDevices = async () => {
       try {
-        // Get local media stream (camera and microphone)
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
@@ -125,86 +116,58 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
 
         if (!isComponentMounted) return;
 
-        // Save stream reference
         localStreamRef.current = stream;
 
-        // Show local video stream
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
 
-        // Create initial peer connection
         createPeerConnection();
 
-        // Socket events for WebRTC signaling
+        // --- Socket handlers defined once, cleaned up on unmount ---
+
         const handleOffer = async (data) => {
-          console.log("Received offer", data);
           try {
             const pc = peerConnectionRef.current;
             if (!pc) return;
 
-            // Generate a unique ID for this offer to avoid processing duplicates
             const offerId = JSON.stringify(data.offer);
-            if (processedSignalsRef.current.has(offerId)) {
-              console.log("Duplicate offer - ignoring");
-              return;
-            }
+            if (processedSignalsRef.current.has(offerId)) return;
             processedSignalsRef.current.add(offerId);
 
-            // Check if we're in a valid state to process the offer
             if (pc.signalingState !== "stable") {
-              console.log("Cannot handle offer in state:", pc.signalingState);
-              // If we're in have-local-offer state, we may need to rollback
               if (pc.signalingState === "have-local-offer") {
-                console.log("Rolling back local offer");
                 await pc.setLocalDescription({ type: "rollback" });
+              } else {
+                console.log("Cannot handle offer in state:", pc.signalingState);
+                return;
               }
             }
 
-            // Set remote description (the offer)
-            await pc.setRemoteDescription(
-              new RTCSessionDescription(data.offer)
-            );
-
-            // Create answer
+            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-
-            // Send answer
-            socket.emit("webrtc-answer", {
-              answer: answer,
-            });
+            socket.emit("webrtc-answer", { answer });
           } catch (error) {
             console.error("Error handling offer:", error);
           }
         };
 
         const handleAnswer = async (data) => {
-          console.log("Received answer", data);
           try {
             const pc = peerConnectionRef.current;
             if (!pc) return;
 
-            // Generate a unique ID for this answer to avoid processing duplicates
             const answerId = JSON.stringify(data.answer);
-            if (processedSignalsRef.current.has(answerId)) {
-              console.log("Duplicate answer - ignoring");
-              return;
-            }
+            if (processedSignalsRef.current.has(answerId)) return;
             processedSignalsRef.current.add(answerId);
 
-            // Only set remote answer if we're in have-local-offer state
             if (pc.signalingState !== "have-local-offer") {
-              console.log(
-                "Cannot set remote answer in state:",
-                pc.signalingState
-              );
+              console.log("Cannot set remote answer in state:", pc.signalingState);
               return;
             }
 
-            await pc.setRemoteDescription(
-              new RTCSessionDescription(data.answer)
-            );
+            await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
           } catch (error) {
             console.error("Error setting remote description:", error);
           }
@@ -223,23 +186,16 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
         };
 
         const createOfferFn = async () => {
-          console.log("Creating offer");
           const pc = peerConnectionRef.current;
           if (!pc) return;
-
           try {
-            // Only create offer if we're in stable state
             if (pc.signalingState !== "stable") {
               console.log("Cannot create offer in state:", pc.signalingState);
               return;
             }
-
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-
-            socket.emit("webrtc-offer", {
-              offer: offer,
-            });
+            socket.emit("webrtc-offer", { offer });
           } catch (error) {
             console.error("Error creating offer:", error);
           }
@@ -248,30 +204,29 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
         const handlePartnerLeft = () => {
           console.log("Partner left");
           setIsConnected(false);
-
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = null;
           }
-
-          // Reset connection
-          setConnectionAttempts(0);
+          // Reset attempt counter but do NOT emit ready-to-connect here —
+          // the parent component will re-mount VideoChat when a new partner is matched.
+          connectionAttemptsRef.current = 0;
+          setShowReconnectBtn(false);
           createPeerConnection();
         };
-
-        // Register socket event handlers
+       
         socket.on("webrtc-offer", handleOffer);
         socket.on("webrtc-answer", handleAnswer);
         socket.on("ice-candidate", handleIceCandidate);
         socket.on("create-offer", createOfferFn);
         socket.on("partnerLeft", handlePartnerLeft);
 
-        // Signal that we're ready to connect
         setTimeout(() => {
-          console.log("Sending ready-to-connect");
-          socket.emit("ready-to-connect");
-        }, 1000);
+          if (isComponentMounted) {
+            socket.emit("ready-to-connect");
+          }
+        }, 500);
 
-        // Return cleanup function for event listeners
+        // Return the cleanup so the effect's return below can call it synchronously.
         return () => {
           socket.off("webrtc-offer", handleOffer);
           socket.off("webrtc-answer", handleAnswer);
@@ -284,55 +239,66 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
       }
     };
 
-    const cleanup = setupMediaDevices();
+    // FIX 2 (cont): Store the Promise so we can resolve the inner cleanup fn.
+    let innerCleanup = null;
+    const setupPromise = setupMediaDevices().then((cleanup) => {
+      innerCleanup = cleanup;
+    });
 
-    // Component cleanup
+
     return () => {
       isComponentMounted = false;
 
-      // Cleanup socket events if needed
-      if (cleanup && typeof cleanup === "function") {
-        cleanup();
+      // Wait for setup to finish then run cleanup, or run immediately if done.
+      if (innerCleanup) {
+        innerCleanup();
+      } else {
+        // Setup still in progress — run cleanup once it resolves.
+        setupPromise.then(() => {
+          if (innerCleanup) innerCleanup();
+        });
       }
 
-      // Stop all media tracks
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
+        localStreamRef.current = null;
       }
 
-      // Close peer connection
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
       }
     };
-  }, [connectionAttempts]);
+  }, []); // ← empty: runs once on mount, cleans up on unmount
+
+  // Auto-scroll messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const toggleMute = () => {
     if (localStreamRef.current) {
       const audioTracks = localStreamRef.current.getAudioTracks();
-      audioTracks.forEach((track) => {
-        track.enabled = !track.enabled;
-      });
-      setIsMuted(!isMuted);
+      audioTracks.forEach((track) => { track.enabled = !track.enabled; });
+      setIsMuted((prev) => !prev);
     }
   };
 
   const toggleCamera = () => {
     if (localStreamRef.current) {
       const videoTracks = localStreamRef.current.getVideoTracks();
-      videoTracks.forEach((track) => {
-        track.enabled = !track.enabled;
-      });
-      setIsCameraOff(!isCameraOff);
+      videoTracks.forEach((track) => { track.enabled = !track.enabled; });
+      setIsCameraOff((prev) => !prev);
     }
   };
 
-  // Create a helper function to reconnect
   const reconnect = () => {
-    setConnectionAttempts(0);
+    connectionAttemptsRef.current = 0;
+    setShowReconnectBtn(false);
     createPeerConnection();
     socket.emit("ready-to-connect");
   };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (message.trim()) {
@@ -341,7 +307,12 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
     }
   };
 
-
+  // Use a stable value derived from window size via CSS media query instead
+  const iconSize = window.innerWidth < 600 ? 16 : 22;
+ const handleEndCall = () => {
+          socket.emit("leaveChat"); // tell server: I'm done, don't requeue me
+          endCall();                // parent unmounts the component
+        };
   return (
     <div className="video-chat-container">
       <div className="video-grid">
@@ -350,7 +321,7 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
           <div className="video-label">
             Partner {isConnected ? "" : "(Connecting...)"}
           </div>
-          {connectionState === "failed" && connectionAttempts >= 3 && (
+          {showReconnectBtn && (
             <button
               onClick={reconnect}
               className="reconnect-btn"
@@ -370,7 +341,11 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
               Reconnect
             </button>
           )}
-          <button style={{zIndex: 1000, position: "absolute", bottom: "10px", right: "10px"}} className="next-button" onClick={onNext}>
+          <button
+            style={{ zIndex: 1000, position: "absolute", bottom: "10px", right: "10px" }}
+            className="next-button"
+            onClick={onNext}
+          >
             Pass {">"}
           </button>
         </div>
@@ -382,58 +357,35 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall,onN
               autoPlay
               playsInline
               muted
-              style={{ transform: "none" }} // Remove any flipping
+              style={{ transform: "none" }}
             />
             <div className="video-label">You</div>
             <div className="video-controls">
               <button
                 className={`control-btn ${isMuted ? "control-off" : ""}`}
                 onClick={toggleMute}
-                style={{
-                  padding: 0,
-                  width: "36px",
-                  height: "36px",
-                }}
+                style={{ padding: 0, width: "36px", height: "36px" }}
               >
-                {isMuted ? (
-                  <MicOff
-                    size={window.innerWidth < 600 ? 16 : 22}
-                    strokeWidth={1.2}
-                  />
-                ) : (
-                  <Mic
-                    size={window.innerWidth < 600 ? 16 : 22}
-                    strokeWidth={1.5}
-                  />
-                )}
+                {isMuted
+                  ? <MicOff size={iconSize} strokeWidth={1.2} />
+                  : <Mic size={iconSize} strokeWidth={1.5} />}
               </button>
               <button
                 className={`control-btn ${isCameraOff ? "control-off" : ""}`}
                 onClick={toggleCamera}
-                style={{
-                  padding: 0,
-                  width: "36px",
-                  height: "36px",
-                }}
+                style={{ padding: 0, width: "36px", height: "36px" }}
               >
-                {isCameraOff ? (
-                  <VideoOff
-                    size={window.innerWidth < 600 ? 16 : 22}
-                    strokeWidth={1.2}
-                  />
-                ) : (
-                  <Video
-                    size={window.innerWidth < 600 ? 16 : 22}
-                    strokeWidth={1.5}
-                  />
-                )}
+                {isCameraOff
+                  ? <VideoOff size={iconSize} strokeWidth={1.2} />
+                  : <Video size={iconSize} strokeWidth={1.5} />}
               </button>
               <button className="control-btn hide-video-btn" onClick={endCall}>
-                <PhoneOff size={window.innerWidth < 600 ? 16 : 22} strokeWidth={1.5} />
+                <PhoneOff size={iconSize} strokeWidth={1.5} />
               </button>
             </div>
           </div>
         </div>
+
         <div className="text-chat-section">
           <div className="messages-container">
             {messages.map((msg, index) => (
