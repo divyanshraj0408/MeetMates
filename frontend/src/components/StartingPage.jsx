@@ -142,9 +142,10 @@ function StartPage({
                 muted
                 playsInline
                 style={{
-                  maxWidth: "100%",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
                   borderRadius: "10px",
-                  minHeight: "100%",
                 }}
               />
             </div>

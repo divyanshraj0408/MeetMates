@@ -117,11 +117,13 @@
 
 .video-preview {
   background: #1a1a1a;
-  height: 200px;
   border-radius: 10px;
-  margin-bottom: 20px;
   flex: 1;
   min-height: 0;
+  /* The <video> is a replaced element: its height follows the webcam's aspect
+     ratio, not this box. Clip it here and let object-fit crop, otherwise it
+     spills out the bottom and paints over the chat below. */
+  overflow: hidden;
 }
 
 .controls {
@@ -164,6 +166,21 @@
   .right-box {
     width: 100%;
   }
+
+  /* height:100% is right for the desktop row, but in this column it makes both
+     boxes demand the full height and shrink-fight, leaving the chat a sliver.
+     Let the left box take its content height and give the rest to the chat. */
+  .left-box {
+    height: auto;
+    flex: 0 0 auto;
+  }
+
+  .right-box {
+    height: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
   .vibe-btn {
     padding: 12px 20px;
     font-size: 1rem;
