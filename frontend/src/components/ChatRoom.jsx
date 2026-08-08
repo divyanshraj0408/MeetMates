@@ -1,4 +1,3 @@
-import { useState, useRef, useEffect } from "react";
 import VideoChat from "./VideoChat";
 import "./chatroom.css";
 
@@ -10,35 +9,16 @@ function ChatRoom({
   toggleVideo,
   socketId,
   onLogout,
-  endCall
+  endCall,
+  partnerTyping,
+  onReactPair,
+  onTypingPair,
 }) {
-  const [message, setMessage] = useState("");
-  const messagesEndRef = useRef(null);
-
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (message.trim()) {
-      onSendMessage(message);
-      setMessage("");
-    }
-  };
-
   return (
     <div className={`chat-container ${videoEnabled ? "with-video" : ""}`}>
       <div className="chat-header">
         <p className="logo">pingo</p>
-        {/* <button onClick={onNext} className="next-button">
-          Next
-        </button> */}
-        <button
-          className="cta-btn"
-          onClick={onLogout}
-        >
+        <button className="cta-btn" onClick={onLogout}>
           Log Out
         </button>
       </div>
@@ -46,11 +26,19 @@ function ChatRoom({
       <div className="chat-body">
         {videoEnabled && (
           <div>
-            <VideoChat socketId={socketId} toggleVideo={toggleVideo} messages={messages} onSendMessage={onSendMessage} endCall={endCall} onNext={onNext}/>
+            <VideoChat
+              socketId={socketId}
+              toggleVideo={toggleVideo}
+              messages={messages}
+              onSendMessage={onSendMessage}
+              endCall={endCall}
+              onNext={onNext}
+              partnerTyping={partnerTyping}
+              onReactPair={onReactPair}
+              onTypingPair={onTypingPair}
+            />
           </div>
         )}
-
-
       </div>
     </div>
   );

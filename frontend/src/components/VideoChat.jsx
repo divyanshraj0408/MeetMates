@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import socket from "../Socket";
+import ChatPanel from "./chat/ChatPanel";
 import { Video, VideoOff, Mic, MicOff, PhoneOff } from 'lucide-react';
 
 import "./videochat.css";
 
-function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, onNext }) {
+function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, onNext, partnerTyping, onReactPair, onTypingPair }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
-
-  const [message, setMessage] = useState("");
-  const messagesEndRef = useRef(null);
 
   const processedSignalsRef = useRef(new Set());
 
@@ -271,11 +269,6 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
     };
   }, []); // ← empty: runs once on mount, cleans up on unmount
 
-  // Auto-scroll messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   const toggleMute = () => {
     if (localStreamRef.current) {
       const audioTracks = localStreamRef.current.getAudioTracks();
@@ -297,14 +290,6 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
     setShowReconnectBtn(false);
     createPeerConnection();
     socket.emit("ready-to-connect");
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (message.trim()) {
-      onSendMessage(message);
-      setMessage("");
-    }
   };
 
   // Use a stable value derived from window size via CSS media query instead
@@ -387,29 +372,17 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
         </div>
 
         <div className="text-chat-section">
-          <div className="messages-container">
-            {messages.map((msg, index) => (
-              <div key={index} className={`message ${msg.type}-message`}>
-                {msg.text}
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-          <form onSubmit={handleSubmit} className="message-form">
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type a message..."
-              className="message-input"
-              onKeyPress={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e);
-                }
-              }}
-            />
-            <button type="submit" className="send-button">Shoot</button>
-          </form>
+          <ChatPanel
+            messages={messages}
+            myKey={socket.id}
+            keyOf={(m) => m.sender}
+            showIdentity={false}
+            emptyText="Say something 👋"
+            typingLabel={partnerTyping ? "typing…" : null}
+            onSend={onSendMessage}
+            onReact={onReactPair}
+            onTyping={onTypingPair}
+          />
         </div>
       </div>
     </div>
