@@ -72,17 +72,31 @@ function fakeSocket(id) {
   };
 }
 
-test("pair events are no-ops when the socket is not in a pairing", async () => {
+test("reactions and typing are silent no-ops with no pairing", () => {
   const io = fakeIo();
-  const socket = fakeSocket("sNoPair");
-  registerPairChat(io, socket, {}); // empty chatPairs — no pairing
+  const socket = fakeSocket("sNoPairQuiet");
+  registerPairChat(io, socket, {});
 
-  await socket.fire("sendMessage", { text: "hello", clientId: "c1" });
   socket.fire("pairReact", { messageId: "m1", emoji: "👍" });
   socket.fire("pairTyping", { typing: true });
 
   assert.strictEqual(io.sent.length, 0);
   assert.strictEqual(socket.emitted.length, 0);
+});
+
+test("sending with no pairing tells the sender instead of dropping silently", async () => {
+  const io = fakeIo();
+  const socket = fakeSocket("sNoPairSend");
+  registerPairChat(io, socket, {});
+
+  await socket.fire("sendMessage", { text: "hello", clientId: "c1" });
+
+  // Nothing is relayed to anyone...
+  assert.strictEqual(io.sent.length, 0);
+  // ...but the sender is told, so the optimistic row can resolve.
+  assert.strictEqual(socket.emitted.length, 1);
+  assert.strictEqual(socket.emitted[0].event, "pairMessageBlocked");
+  assert.strictEqual(socket.emitted[0].payload.clientId, "c1");
 });
 
 test("a clean pair message is relayed to the room without any email", async () => {

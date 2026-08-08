@@ -54,7 +54,16 @@ function registerPairChat(io, socket, chatPairs) {
 
   socket.on("sendMessage", async (raw) => {
     const room = roomOf();
-    if (!room) return;
+    if (!room) {
+      // The pairing ended while the composer was still live. Tell the sender,
+      // otherwise their optimistic row sits at "Sending…" forever.
+      const payload = typeof raw === "string" ? { text: raw } : raw || {};
+      socket.emit("pairMessageBlocked", {
+        clientId: payload.clientId || null,
+        reason: "Your chat partner has left.",
+      });
+      return;
+    }
 
     // Accept both the object form and a bare string so a stale client cannot
     // break during deploy.

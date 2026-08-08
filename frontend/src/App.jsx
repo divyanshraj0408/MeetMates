@@ -95,6 +95,7 @@ function App() {
           reactions: {},
         },
       ]);
+      setPartnerTyping(false);
       socket.emit("ready-to-connect");
     });
 
