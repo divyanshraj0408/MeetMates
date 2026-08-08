@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import GlobalChat from "./globalchat/GlobalChat";
+import ChatPanel from "./chat/ChatPanel";
 import "./startpage.css";
 
 function StartPage({
@@ -152,9 +152,11 @@ function StartPage({
           </div>
 
           <div className={`pane pane-chat ${mobileTab === "chat" ? "pane-active" : ""}`}>
-            <GlobalChat
+            <ChatPanel
               messages={globalMessages}
-              myUid={myUid}
+              myKey={myUid}
+              keyOf={(m) => m.uid}
+              showIdentity
               typingNames={typingNames}
               onSend={onSendGlobal}
               onReact={onReactGlobal}

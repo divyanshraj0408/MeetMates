@@ -6,17 +6,24 @@ import "./globalchat.css";
 const NEAR_BOTTOM_PX = 80;
 const TYPING_THROTTLE_MS = 2000;
 
-function typingLabel(names) {
+function namesToLabel(names) {
   if (names.length === 0) return null;
   if (names.length === 1) return `${names[0]} is typing…`;
   if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
   return "Several people are typing…";
 }
 
-function GlobalChat({
+// One chat surface, used by both the public room and the anonymous 1:1 chat.
+// `keyOf` decides what counts as the same author (uid vs socket id) and
+// `myKey` is the local user's value of that same identity.
+function ChatPanel({
   messages = [],
-  myUid,
+  myKey,
+  keyOf = (m) => m.uid,
+  showIdentity = true,
+  emptyText = "No messages yet. Say hi 👋",
   typingNames = [],
+  typingLabel,
   onSend,
   onReact,
   onTyping,
@@ -35,7 +42,7 @@ function GlobalChat({
     if (distance < NEAR_BOTTOM_PX + 200) {
       list.scrollTop = list.scrollHeight;
     }
-  }, [messages, typingNames]);
+  }, [messages, typingNames, typingLabel]);
 
   const submit = (event) => {
     event.preventDefault();
@@ -45,7 +52,6 @@ function GlobalChat({
     setInput("");
     onTyping(false);
     lastTypingSentAt.current = 0;
-    // A sent message is always meant to be seen.
     const list = listRef.current;
     if (list) list.scrollTop = list.scrollHeight;
   };
@@ -66,30 +72,34 @@ function GlobalChat({
     }
   };
 
-  const groups = groupMessages(messages, (m) => m.uid);
-  const label = typingLabel(typingNames);
+  const groups = groupMessages(messages, keyOf);
+  // An explicit label wins; otherwise derive one from the name list.
+  const label = typingLabel !== undefined ? typingLabel : namesToLabel(typingNames);
 
   return (
     <div className="gc-root">
       <div className="gc-list" ref={listRef}>
         {groups.length === 0 ? (
-          <p className="gc-empty">No messages yet. Say hi 👋</p>
+          <p className="gc-empty">{emptyText}</p>
         ) : (
           groups.map((group) => {
-            const isOwn = group.authorKey === myUid;
+            const isOwn = group.authorKey === myKey;
             return (
               <div
                 key={group.key}
                 className={`gc-group ${isOwn ? "gc-group-own" : ""}`}
               >
-                {!isOwn && <span className="gc-name">{group.name}</span>}
+                {showIdentity && !isOwn && (
+                  <span className="gc-name">{group.name}</span>
+                )}
                 {group.messages.map((message, index) => (
                   <MessageRow
                     key={message.id}
                     message={message}
                     isOwn={isOwn}
                     isLast={index === group.messages.length - 1}
-                    myUid={myUid}
+                    myKey={myKey}
+                    showIdentity={showIdentity}
                     onReact={onReact}
                   />
                 ))}
@@ -121,4 +131,4 @@ function GlobalChat({
   );
 }
 
-export default GlobalChat;
+export default ChatPanel;

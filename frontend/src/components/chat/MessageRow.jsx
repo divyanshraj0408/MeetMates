@@ -11,7 +11,7 @@ function formatTime(timestamp) {
 // One message. `isLast` marks the final message of a group — that row carries
 // the avatar and the timestamp; earlier rows reserve the avatar's width so the
 // bubbles stay aligned.
-function MessageRow({ message, isOwn, isLast, myUid, onReact }) {
+function MessageRow({ message, isOwn, isLast, myKey, showIdentity = true, onReact }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const status = message.status;
 
@@ -21,9 +21,11 @@ function MessageRow({ message, isOwn, isLast, myUid, onReact }) {
       onMouseEnter={() => setPickerOpen(true)}
       onMouseLeave={() => setPickerOpen(false)}
     >
-      <div className="gc-avatar-slot">
-        {isLast ? <Avatar uid={message.uid} name={message.name} /> : null}
-      </div>
+      {showIdentity && (
+        <div className="gc-avatar-slot">
+          {isLast ? <Avatar uid={message.uid} name={message.name} /> : null}
+        </div>
+      )}
 
       <div className="gc-body">
         <div className="gc-bubble-wrap">
@@ -44,7 +46,7 @@ function MessageRow({ message, isOwn, isLast, myUid, onReact }) {
 
         <ReactionChips
           reactions={message.reactions}
-          myUid={myUid}
+          myUid={myKey}
           onReact={(emoji) => onReact(message.id, emoji)}
         />
 
