@@ -82,10 +82,18 @@ let lastTypingBroadcastAt = 0;
 
 // Resolve the sender's email from the socket's JWT. Isolated from the
 // commented-out matchmaking auth middleware so this cannot affect matchmaking.
-// Caches on socket.userEmail so the verify/lookup happens once per socket.
-async function resolveGlobalSender(socket) {
-  if (socket.userEmail) return socket.userEmail;
+// The in-flight promise is cached on the socket so a burst of events cannot
+// fan out into concurrent database queries, and so a token that resolves to
+// nothing is only looked up once per connection.
+function resolveGlobalSender(socket) {
+  if (socket.userEmail) return Promise.resolve(socket.userEmail);
+  if (!socket.chatSenderLookup) {
+    socket.chatSenderLookup = lookupGlobalSender(socket);
+  }
+  return socket.chatSenderLookup;
+}
 
+async function lookupGlobalSender(socket) {
   const raw =
     socket.handshake.auth?.token || socket.handshake.headers?.authorization;
   if (!raw) return null;
@@ -141,9 +149,11 @@ function registerGlobalChat(io, socket) {
   socket.emit("globalHistory", globalMessages);
 
   // Tell the socket its own opaque id, if it arrived with a usable token.
-  resolveGlobalSender(socket).then((email) => {
-    if (email) socket.emit("globalIdentity", { uid: uidFor(email) });
-  });
+  resolveGlobalSender(socket)
+    .then((email) => {
+      if (email) socket.emit("globalIdentity", { uid: uidFor(email) });
+    })
+    .catch((err) => console.error("Global chat identity failed:", err.message));
 
   socket.on("globalMessage", async (raw) => {
     // Accept both the object form and a bare string, so a stale client
@@ -170,6 +180,9 @@ function registerGlobalChat(io, socket) {
       });
       return;
     }
+    // The socket may have disconnected while the sender lookup was in flight;
+    // its disconnect cleanup has already run, so do not re-add state for it.
+    if (socket.disconnected) return;
 
     // Rate limit — stamp immediately so blocked/spam attempts are throttled too.
     const now = Date.now();
@@ -206,6 +219,7 @@ function registerGlobalChat(io, socket) {
     // Sending clears any typing state for this user.
     const uid = uidFor(email);
     setTyping(typingRegistry, uid, displayNameFor(email), false, now, TYPING_TTL_MS);
+    broadcastTyping(io, now);
 
     const outgoing = {
       id: uuidv4(),
@@ -229,6 +243,9 @@ function registerGlobalChat(io, socket) {
 
     const email = await resolveGlobalSender(socket);
     if (!email) return;
+    // The socket may have disconnected while the sender lookup was in flight;
+    // its disconnect cleanup has already run, so do not re-add state for it.
+    if (socket.disconnected) return;
 
     const now = Date.now();
     if (now - (lastReactAt.get(socket.id) || 0) < REACT_RATE_MS) return;
@@ -256,13 +273,21 @@ function registerGlobalChat(io, socket) {
       now,
       TYPING_TTL_MS
     );
+    // Remember which socket owns this entry so another device's disconnect
+    // cannot clear it.
+    const entry = typingRegistry.get(uidFor(email));
+    if (entry) entry.socketId = socket.id;
     broadcastTyping(io, now);
   });
 
   socket.on("disconnect", () => {
     lastGlobalMessageAt.delete(socket.id);
     lastReactAt.delete(socket.id);
-    if (socket.userEmail) typingRegistry.delete(uidFor(socket.userEmail));
+    if (socket.userEmail) {
+      const uid = uidFor(socket.userEmail);
+      const entry = typingRegistry.get(uid);
+      if (entry && entry.socketId === socket.id) typingRegistry.delete(uid);
+    }
   });
 }
 
