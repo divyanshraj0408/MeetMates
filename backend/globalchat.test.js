@@ -50,6 +50,12 @@ test("toggleReaction does not mutate its input", () => {
   assert.deepStrictEqual(before, { "👍": ["u1"] });
 });
 
+test("toggleReaction preserves reactions on other emoji", () => {
+  const start = { "❤️": ["u9"] };
+  const next = toggleReaction(start, "👍", "u1");
+  assert.deepStrictEqual(next, { "❤️": ["u9"], "👍": ["u1"] });
+});
+
 test("trimHistory keeps the newest N", () => {
   const msgs = Array.from({ length: 55 }, (_, i) => ({ id: i }));
   const trimmed = trimHistory(msgs, 50);
@@ -61,6 +67,12 @@ test("trimHistory keeps the newest N", () => {
 test("trimHistory leaves short lists alone", () => {
   const msgs = [{ id: 1 }, { id: 2 }];
   assert.strictEqual(trimHistory(msgs, 50), msgs);
+});
+
+test("trimHistory with a zero or negative limit keeps nothing", () => {
+  const msgs = [{ id: 1 }, { id: 2 }];
+  assert.deepStrictEqual(trimHistory(msgs, 0), []);
+  assert.deepStrictEqual(trimHistory(msgs, -5), []);
 });
 
 test("setTyping adds an entry and removing clears it", () => {

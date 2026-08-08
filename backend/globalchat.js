@@ -34,6 +34,7 @@ function toggleReaction(reactions, emoji, uid) {
 }
 
 function trimHistory(messages, limit) {
+  if (limit <= 0) return [];
   return messages.length > limit ? messages.slice(-limit) : messages;
 }
 
