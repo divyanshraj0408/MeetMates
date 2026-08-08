@@ -66,7 +66,7 @@ function GlobalChat({
     }
   };
 
-  const groups = groupMessages(messages);
+  const groups = groupMessages(messages, (m) => m.uid);
   const label = typingLabel(typingNames);
 
   return (
@@ -76,7 +76,7 @@ function GlobalChat({
           <p className="gc-empty">No messages yet. Say hi 👋</p>
         ) : (
           groups.map((group) => {
-            const isOwn = group.uid === myUid;
+            const isOwn = group.authorKey === myUid;
             return (
               <div
                 key={group.key}
