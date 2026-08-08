@@ -230,7 +230,11 @@ function App() {
     const trimmed = text.trim();
     if (!trimmed) return;
 
-    const clientId = crypto.randomUUID();
+    // crypto.randomUUID is only available in a secure context; a dev server
+    // reached over a LAN IP is not one, so fall back to a good-enough id.
+    const clientId =
+      globalThis.crypto?.randomUUID?.() ??
+      `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const email = localStorage.getItem("collegeEmail") || "";
 
     // Optimistic row. The server echoes clientId back, at which point this is

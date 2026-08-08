@@ -140,17 +140,6 @@
   font-size: 1.2rem;
   cursor: pointer;
 }
-.text-chat-section1{
-   border: 4px solid  #0099FF;
-  background-color: #1E1E1E;
-  /* border-image: linear-gradient(to right, #0099FF 0%, #E6F7FF 100%); */
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  flex: 1;
-  min-height: 0;
-}
 .bye-btn {
   background: red;
   color: white;
@@ -159,12 +148,6 @@
   border-radius: 10px;
   font-weight: bold;
   cursor: pointer;
-}
-.globalchat-container{
-  /* Same element as .text-chat-section1 (flex:1). height:100% fought the flex
-     layout and let the message list grow the whole page; min-height:0 lets the
-     inner .messages-container scroll instead. */
-  min-height: 0;
 }
 /* ========================= */
 /* 📱 Responsive Styles */
@@ -180,9 +163,6 @@
   .left-box,
   .right-box {
     width: 100%;
-  }
-  .text-chat-section1{
-    display: none !important;
   }
   .vibe-btn {
     padding: 12px 20px;
@@ -201,60 +181,64 @@
   .filters {
     justify-content: center;
   }
-  .globalchat-container{
+}
+
+/* Right box panes. On desktop both panes stack and the tabs are hidden; below
+   768px the tabs pick one pane and it fills the remaining height. */
+.pane-tabs {
+  display: none;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pane-preview {
+  flex: 0 0 200px;
+  margin-bottom: 20px;
+}
+
+.pane-chat {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .pane-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex: 0 0 auto;
+  }
+
+  .pane-tab {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    background: #3c3c3c;
+    color: #fff;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .pane-tab-active {
+    background: #0099ff;
+  }
+
+  .pane {
     display: none;
   }
-}
 
-.globalchat-container .messages-container {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 12px;
-}
+  .pane-active {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
 
-.global-empty {
-  opacity: 0.6;
-  font-size: 0.9rem;
-  text-align: center;
-  margin: auto;
-}
-
-.global-msg {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 8px;
-  max-width: 80%;
-}
-
-.global-msg.own {
-  align-self: flex-end;
-  text-align: right;
-}
-
-.global-msg-name {
-  font-size: 0.7rem;
-  opacity: 0.7;
-  margin-bottom: 2px;
-}
-
-.global-msg-text {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 6px 10px;
-  border-radius: 10px;
-  display: inline-block;
-  word-break: break-word;
-}
-
-.global-msg.own .global-msg-text {
-  background: rgba(120, 90, 255, 0.35);
-}
-
-.global-block-notice {
-  color: #ff6b6b;
-  font-size: 0.8rem;
-  padding: 4px 8px;
-  margin: 0;
+  .pane-preview.pane-active {
+    flex: 1 1 auto;
+  }
 }
