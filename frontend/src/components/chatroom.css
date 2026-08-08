@@ -1,8 +1,27 @@
 /* Chat Room Component */
 .chat-container {
   /* width: 100vw; */
-  height: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: linear-gradient(to right, #0099FF 0%, #E6F7FF 100%);
+}
+
+/* The chat body owns whatever height the header leaves. Sizing it by flex
+   rather than by subtracting a hardcoded header height keeps it correct when
+   the logo or padding changes — the old calc(100vh - 65.5px) was 2px short of
+   the real 67.5px header and overflowed the page at every viewport. */
+.chat-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.chat-body > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
 }
 
 .chat-card {
