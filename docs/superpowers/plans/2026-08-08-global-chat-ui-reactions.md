@@ -10,7 +10,7 @@
 
 **Spec:** [../specs/2026-08-08-global-chat-ui-reactions-design.md](../specs/2026-08-08-global-chat-ui-reactions-design.md)
 
-**Note:** The user commits changes themselves. Do NOT run `git commit` or `git add`. Each task ends with a review checkpoint — pause and let the user review and commit.
+**Branch:** All work happens on `feat/global-chat-ui-reactions`, which was branched from `main` at commit `f35f983` (the baseline containing the working global chat). Each task commits to this branch. The branch is merged to `main` at the end, and **the user handles `main` themselves** — do not commit to, or push, `main`.
 
 ---
 
@@ -220,9 +220,14 @@ module.exports = {
 Run: `cd backend && npm test`
 Expected: PASS — 18 tests total (8 pre-existing from `moderation.test.js`, 10 new).
 
-- [ ] **Step 5: Review checkpoint**
+- [ ] **Step 5: Commit**
 
-Stop. Let the user review and commit `globalchat.js` and `globalchat.test.js`.
+Commit to `feat/global-chat-ui-reactions`:
+
+```bash
+git add backend/globalchat.js backend/globalchat.test.js
+git commit -m "feat: add global chat pure helpers (uid, reactions, typing)"
+```
 
 ---
 
@@ -258,9 +263,14 @@ Replace it with:
 Run: `cd backend && node -e "require('./routes/auth.js'); console.log('ok')"`
 Expected: prints `ok`.
 
-- [ ] **Step 3: Review checkpoint**
+- [ ] **Step 3: Commit**
 
-Stop. Let the user review and commit `routes/auth.js`.
+Commit to `feat/global-chat-ui-reactions`:
+
+```bash
+git add backend/routes/auth.js
+git commit -m "fix: include email in password-login JWT"
+```
 
 Note for the user: this fixes tokens issued from now on. Tokens already in users' browsers last 7 days and still lack `email` — Task 3 adds the database fallback that covers them.
 
@@ -559,9 +569,14 @@ Expected: no output. Every one of those now lives in `globalchat.js`.
 Run: `cd backend && npm test`
 Expected: PASS — all 18 tests still pass.
 
-- [ ] **Step 7: Review checkpoint**
+- [ ] **Step 7: Commit**
 
-Stop. Let the user review and commit `globalchat.js` and `server.js`.
+Commit to `feat/global-chat-ui-reactions`:
+
+```bash
+git add backend/globalchat.js backend/server.js
+git commit -m "refactor: move global chat into globalchat.js, add reactions and typing"
+```
 
 ---
 
@@ -706,9 +721,14 @@ export function groupMessages(messages) {
 Run: `cd frontend && npm test`
 Expected: PASS — 6 tests.
 
-- [ ] **Step 6: Review checkpoint**
+- [ ] **Step 6: Commit**
 
-Stop. Let the user review and commit `package.json`, `package-lock.json`, `groupMessages.js`, `groupMessages.test.js`.
+Commit to `feat/global-chat-ui-reactions`:
+
+```bash
+git add frontend/package.json frontend/package-lock.json frontend/src/components/globalchat/groupMessages.js frontend/src/components/globalchat/groupMessages.test.js
+git commit -m "test: add vitest and message grouping"
+```
 
 ---
 
@@ -823,9 +843,14 @@ export function ReactionChips({ reactions, myUid, onReact }) {
 Run: `cd frontend && npm run build`
 Expected: Vite build completes. (Neither component is imported yet, so this only checks they parse.)
 
-- [ ] **Step 4: Review checkpoint**
+- [ ] **Step 4: Commit**
 
-Stop. Let the user review and commit `Avatar.jsx` and `ReactionBar.jsx`.
+Commit to `feat/global-chat-ui-reactions`:
+
+```bash
+git add frontend/src/components/globalchat/Avatar.jsx frontend/src/components/globalchat/ReactionBar.jsx
+git commit -m "feat: add chat avatar and reaction components"
+```
 
 ---
 
@@ -916,9 +941,14 @@ export default MessageRow;
 Run: `cd frontend && npm run build`
 Expected: Vite build completes.
 
-- [ ] **Step 3: Review checkpoint**
+- [ ] **Step 3: Commit**
 
-Stop. Let the user review and commit `MessageRow.jsx`.
+Commit to `feat/global-chat-ui-reactions`:
+
+```bash
+git add frontend/src/components/globalchat/MessageRow.jsx
+git commit -m "feat: add chat message row"
+```
 
 ---
 
@@ -1312,9 +1342,14 @@ Create `frontend/src/components/globalchat/globalchat.css`:
 Run: `cd frontend && npm run build`
 Expected: Vite build completes.
 
-- [ ] **Step 4: Review checkpoint**
+- [ ] **Step 4: Commit**
 
-Stop. Let the user review and commit `GlobalChat.jsx` and `globalchat.css`.
+Commit to `feat/global-chat-ui-reactions`:
+
+```bash
+git add frontend/src/components/globalchat/GlobalChat.jsx frontend/src/components/globalchat/globalchat.css
+git commit -m "feat: add global chat container and scoped styles"
+```
 
 ---
 
@@ -1507,9 +1542,14 @@ Expected: no output.
 Run: `cd frontend && npm run build`
 Expected: Vite build completes.
 
-- [ ] **Step 8: Review checkpoint**
+- [ ] **Step 8: Commit**
 
-Stop. Let the user review and commit `App.jsx`.
+Commit to `feat/global-chat-ui-reactions`:
+
+```bash
+git add frontend/src/App.jsx
+git commit -m "feat: wire reactions, typing and delivery state into App"
+```
 
 ---
 
@@ -1806,9 +1846,14 @@ Expected: no output. Nothing on the StartPage uses a class that `videochat.css` 
 Run: `cd frontend && npm run build && npm test`
 Expected: Vite build completes, 6 vitest tests pass.
 
-- [ ] **Step 6: Review checkpoint**
+- [ ] **Step 6: Commit**
 
-Stop. Let the user review and commit `StartingPage.jsx` and `startpage.css`.
+Commit to `feat/global-chat-ui-reactions`:
+
+```bash
+git add frontend/src/components/StartingPage.jsx frontend/src/components/startpage.css
+git commit -m "feat: mobile chat tabs, drop colliding chat styles"
+```
 
 ---
 
