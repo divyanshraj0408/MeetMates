@@ -18,6 +18,7 @@ function App() {
   const [globalMessages, setGlobalMessages] = useState([]);
   const [myUid, setMyUid] = useState(null);
   const [typingNames, setTypingNames] = useState([]);
+  const [partnerTyping, setPartnerTyping] = useState(false);
 
   // FIX: Track when the user intentionally ends the call so that the
   // partnerLeft handler doesn't auto-rejoin them into matchmaking.
@@ -93,10 +94,46 @@ function App() {
       socket.emit("ready-to-connect");
     });
 
-    socket.on("message", (data) => {
-      const messageType = data.sender === socket.id ? "user" : "partner";
-      setMessages((prev) => [...prev, { text: data.text, type: messageType }]);
+    socket.on("message", (msg) => {
+      setMessages((prev) => {
+        // Drop our own optimistic copy, then append the server's canonical one.
+        const withoutOptimistic = prev.filter(
+          (m) => !(m.clientId && m.clientId === msg.clientId)
+        );
+        return [...withoutOptimistic, { ...msg, status: "delivered" }];
+      });
     });
+
+    socket.on("pairMessageBlocked", ({ clientId, reason }) => {
+      if (!clientId) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.clientId === clientId
+            ? { ...m, status: "blocked", blockReason: reason }
+            : m
+        )
+      );
+    });
+
+    socket.on("pairReaction", ({ messageId, emoji, from }) => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId) return m;
+          // Both clients receive this event and apply the identical toggle, so
+          // they converge without the server storing anything.
+          const reactions = { ...(m.reactions || {}) };
+          const list = reactions[emoji] ? [...reactions[emoji]] : [];
+          const at = list.indexOf(from);
+          if (at === -1) list.push(from);
+          else list.splice(at, 1);
+          if (list.length === 0) delete reactions[emoji];
+          else reactions[emoji] = list;
+          return { ...m, reactions };
+        })
+      );
+    });
+
+    socket.on("pairTyping", ({ typing }) => setPartnerTyping(Boolean(typing)));
 
     socket.on("globalIdentity", ({ uid }) => setMyUid(uid));
 
@@ -187,6 +224,9 @@ function App() {
       socket.off("waiting");
       socket.off("chatStart");
       socket.off("message");
+      socket.off("pairMessageBlocked");
+      socket.off("pairReaction");
+      socket.off("pairTyping");
       socket.off("partnerLeft");
       socket.off("error");
       socket.off("globalIdentity");
@@ -230,10 +270,38 @@ function App() {
     setCurrentScreen("waiting");
   };
 
-  const handleSendMessage = (message) => {
-    if (message.trim()) {
-      socket.emit("sendMessage", message);
-    }
+  const handleSendMessage = (text) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    // crypto.randomUUID is only available in a secure context; a dev server
+    // reached over a LAN IP is not one, so fall back to a good-enough id.
+    const clientId =
+      globalThis.crypto?.randomUUID?.() ??
+      `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `local-${clientId}`,
+        clientId,
+        sender: socket.id,
+        text: trimmed,
+        timestamp: new Date().toISOString(),
+        reactions: {},
+        status: "sending",
+      },
+    ]);
+
+    socket.emit("sendMessage", { text: trimmed, clientId });
+  };
+
+  const handleReactPair = (messageId, emoji) => {
+    socket.emit("pairReact", { messageId, emoji });
+  };
+
+  const handleTypingPair = (typing) => {
+    socket.emit("pairTyping", { typing });
   };
 
   const handleSendGlobal = (text) => {
@@ -276,6 +344,7 @@ function App() {
 
   const handleNextChat = () => {
     setMessages([]);
+    setPartnerTyping(false);
     setCurrentPartnerId(null);
     setIsVideoChat(false);
     socket.emit("next");
@@ -391,6 +460,9 @@ function App() {
             socketId={socket.id}
             onLogout={logout}
             endCall={handleEndCall}
+            partnerTyping={partnerTyping}
+            onReactPair={handleReactPair}
+            onTypingPair={handleTypingPair}
           />
         );
 
