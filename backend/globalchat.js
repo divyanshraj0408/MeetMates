@@ -1,10 +1,9 @@
 // globalchat.js - shared public chat room: message buffer, reactions, typing.
 const crypto = require("crypto");
-const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const { moderateMessage } = require("./moderation.js");
 const FlaggedMessage = require("./models/FlaggedMessage.js");
-const User = require("./models/User.js");
+const { resolveGlobalSender, displayNameFor } = require("./socketIdentity.js");
 
 // Closed reaction set. Because it is closed, reactions need no moderation call
 // and a client cannot bloat a message with arbitrary keys.
@@ -79,56 +78,6 @@ const lastGlobalMessageAt = new Map(); // socketId -> timestamp
 const lastReactAt = new Map();         // socketId -> timestamp
 const typingRegistry = new Map();      // uid -> { name, expiresAt }
 let lastTypingBroadcastAt = 0;
-
-// Resolve the sender's email from the socket's JWT. Isolated from the
-// commented-out matchmaking auth middleware so this cannot affect matchmaking.
-// The in-flight promise is cached on the socket so a burst of events cannot
-// fan out into concurrent database queries, and so a token that resolves to
-// nothing is only looked up once per connection.
-function resolveGlobalSender(socket) {
-  if (socket.userEmail) return Promise.resolve(socket.userEmail);
-  if (!socket.chatSenderLookup) {
-    socket.chatSenderLookup = lookupGlobalSender(socket);
-  }
-  return socket.chatSenderLookup;
-}
-
-async function lookupGlobalSender(socket) {
-  const raw =
-    socket.handshake.auth?.token || socket.handshake.headers?.authorization;
-  if (!raw) return null;
-  const token = raw.startsWith("Bearer ") ? raw.substring(7) : raw;
-
-  let decoded;
-  try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET);
-  } catch (err) {
-    return null;
-  }
-
-  if (decoded.email) {
-    socket.userEmail = decoded.email;
-    return decoded.email;
-  }
-
-  // Password-login tokens issued before the auth.js fix carry only an id and
-  // stay in circulation for 7 days. Look the email up once for those.
-  const id = decoded.id || decoded.userId;
-  if (!id) return null;
-  try {
-    const user = await User.findById(id).select("email");
-    if (!user) return null;
-    socket.userEmail = user.email;
-    return user.email;
-  } catch (err) {
-    console.error("Failed to resolve chat sender from id:", err.message);
-    return null;
-  }
-}
-
-function displayNameFor(email) {
-  return String(email).split("@")[0];
-}
 
 function broadcastTyping(io, now) {
   if (now - lastTypingBroadcastAt < TYPING_BROADCAST_MS) return;
