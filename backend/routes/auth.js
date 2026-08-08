@@ -80,9 +80,11 @@ router.post("/login", async (req, res) => {
         .json({ error: "JWT_SECRET is not set in environment variables." });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     return res.status(200).json({ token });
   } catch (err) {
