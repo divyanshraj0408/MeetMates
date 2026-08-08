@@ -16,7 +16,8 @@ function App() {
   const [currentPartnerId, setCurrentPartnerId] = useState(null);
   const [isVideoChat, setIsVideoChat] = useState(false);
   const [globalMessages, setGlobalMessages] = useState([]);
-  const [globalBlockNotice, setGlobalBlockNotice] = useState(null);
+  const [myUid, setMyUid] = useState(null);
+  const [typingNames, setTypingNames] = useState([]);
 
   // FIX: Track when the user intentionally ends the call so that the
   // partnerLeft handler doesn't auto-rejoin them into matchmaking.
@@ -97,16 +98,44 @@ function App() {
       setMessages((prev) => [...prev, { text: data.text, type: messageType }]);
     });
 
+    socket.on("globalIdentity", ({ uid }) => setMyUid(uid));
+
     socket.on("globalHistory", (history) => {
       setGlobalMessages(Array.isArray(history) ? history : []);
     });
 
     socket.on("globalMessage", (msg) => {
-      setGlobalMessages((prev) => [...prev, msg]);
+      setGlobalMessages((prev) => {
+        // Drop our own optimistic copy, then append the server's canonical one.
+        const withoutOptimistic = prev.filter(
+          (m) => !(m.clientId && m.clientId === msg.clientId)
+        );
+        const next = [...withoutOptimistic, { ...msg, status: "delivered" }];
+        // Match the server's 50-message cap so a long session cannot grow the
+        // list (and the DOM) without bound.
+        return next.length > 50 ? next.slice(-50) : next;
+      });
     });
 
-    socket.on("globalMessageBlocked", (data) => {
-      setGlobalBlockNotice(data?.reason || "Message blocked.");
+    socket.on("globalMessageBlocked", ({ clientId, reason }) => {
+      if (!clientId) return;
+      setGlobalMessages((prev) =>
+        prev.map((m) =>
+          m.clientId === clientId
+            ? { ...m, status: "blocked", blockReason: reason }
+            : m
+        )
+      );
+    });
+
+    socket.on("globalReaction", ({ messageId, reactions }) => {
+      setGlobalMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, reactions } : m))
+      );
+    });
+
+    socket.on("globalTypingUsers", ({ names }) => {
+      setTypingNames(Array.isArray(names) ? names : []);
     });
 
     socket.on("partnerLeft", (data) => {
@@ -150,9 +179,12 @@ function App() {
       socket.off("message");
       socket.off("partnerLeft");
       socket.off("error");
+      socket.off("globalIdentity");
       socket.off("globalHistory");
       socket.off("globalMessage");
       socket.off("globalMessageBlocked");
+      socket.off("globalReaction");
+      socket.off("globalTypingUsers");
     };
   }, []);
 
@@ -194,11 +226,38 @@ function App() {
     }
   };
 
-  const handleSendGlobal = (message) => {
-    if (message.trim()) {
-      setGlobalBlockNotice(null);
-      socket.emit("globalMessage", message);
-    }
+  const handleSendGlobal = (text) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    const clientId = crypto.randomUUID();
+    const email = localStorage.getItem("collegeEmail") || "";
+
+    // Optimistic row. The server echoes clientId back, at which point this is
+    // swapped for the canonical message and the status becomes "delivered".
+    setGlobalMessages((prev) => [
+      ...prev,
+      {
+        id: `local-${clientId}`,
+        clientId,
+        uid: myUid,
+        name: email.split("@")[0],
+        text: trimmed,
+        timestamp: new Date().toISOString(),
+        reactions: {},
+        status: "sending",
+      },
+    ]);
+
+    socket.emit("globalMessage", { text: trimmed, clientId });
+  };
+
+  const handleReactGlobal = (messageId, emoji) => {
+    socket.emit("globalReact", { messageId, emoji });
+  };
+
+  const handleTypingGlobal = (typing) => {
+    socket.emit("globalTyping", { typing });
   };
 
   const handleNextChat = () => {
@@ -277,8 +336,11 @@ function App() {
             onLogout={logout}
             onlineUserCount={onlineUserCount}
             globalMessages={globalMessages}
+            myUid={myUid}
+            typingNames={typingNames}
             onSendGlobal={handleSendGlobal}
-            globalBlockNotice={globalBlockNotice}
+            onReactGlobal={handleReactGlobal}
+            onTypingGlobal={handleTypingGlobal}
           />
         );
 
@@ -296,8 +358,11 @@ function App() {
             onlineUserCount={onlineUserCount}
             loading={true}
             globalMessages={globalMessages}
+            myUid={myUid}
+            typingNames={typingNames}
             onSendGlobal={handleSendGlobal}
-            globalBlockNotice={globalBlockNotice}
+            onReactGlobal={handleReactGlobal}
+            onTypingGlobal={handleTypingGlobal}
           />
         );
 
