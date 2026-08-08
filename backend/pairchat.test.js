@@ -49,3 +49,86 @@ test("defaults clientId to null when the client did not send one", () => {
   const r = preparePairMessage({ text: "hello", senderId: "sock1" });
   assert.strictEqual(r.message.clientId, null);
 });
+
+const { registerPairChat } = require("./pairchat");
+
+// Minimal Socket.IO doubles. registerPairChat only needs on/emit on the socket
+// and to(room).emit on io, so hand-rolling them beats pulling in a mock library.
+function fakeIo() {
+  const sent = [];
+  return { sent, to: (room) => ({ emit: (event, payload) => sent.push({ room, event, payload }) }) };
+}
+
+function fakeSocket(id) {
+  const handlers = {};
+  const emitted = [];
+  return {
+    id,
+    handlers,
+    emitted,
+    on: (event, handler) => { handlers[event] = handler; },
+    emit: (event, payload) => emitted.push({ event, payload }),
+    fire: (event, payload) => handlers[event] && handlers[event](payload),
+  };
+}
+
+test("pair events are no-ops when the socket is not in a pairing", async () => {
+  const io = fakeIo();
+  const socket = fakeSocket("sNoPair");
+  registerPairChat(io, socket, {}); // empty chatPairs — no pairing
+
+  await socket.fire("sendMessage", { text: "hello", clientId: "c1" });
+  socket.fire("pairReact", { messageId: "m1", emoji: "👍" });
+  socket.fire("pairTyping", { typing: true });
+
+  assert.strictEqual(io.sent.length, 0);
+  assert.strictEqual(socket.emitted.length, 0);
+});
+
+test("a clean pair message is relayed to the room without any email", async () => {
+  const io = fakeIo();
+  const socket = fakeSocket("sMsg");
+  registerPairChat(io, socket, { sMsg: { room: "r1", partner: "s2" } });
+
+  await socket.fire("sendMessage", { text: "hey", clientId: "c1" });
+
+  assert.strictEqual(io.sent.length, 1);
+  assert.strictEqual(io.sent[0].room, "r1");
+  assert.strictEqual(io.sent[0].event, "message");
+  const msg = io.sent[0].payload;
+  assert.strictEqual(msg.text, "hey");
+  assert.strictEqual(msg.clientId, "c1");
+  assert.ok(msg.id && msg.timestamp);
+  assert.strictEqual("senderEmail" in msg, false);
+  assert.strictEqual("email" in msg, false);
+});
+
+test("a non-whitelisted emoji is not relayed", () => {
+  const io = fakeIo();
+  const socket = fakeSocket("sBadEmoji");
+  registerPairChat(io, socket, { sBadEmoji: { room: "r1", partner: "s2" } });
+
+  socket.fire("pairReact", { messageId: "m1", emoji: "💩" });
+  assert.strictEqual(io.sent.length, 0);
+});
+
+test("a whitelisted emoji is relayed to the room with the reactor's id", () => {
+  const io = fakeIo();
+  const socket = fakeSocket("sReact");
+  registerPairChat(io, socket, { sReact: { room: "r1", partner: "s2" } });
+
+  socket.fire("pairReact", { messageId: "m1", emoji: "🔥" });
+  assert.strictEqual(io.sent.length, 1);
+  assert.deepStrictEqual(io.sent[0].payload, { messageId: "m1", emoji: "🔥", from: "sReact" });
+});
+
+test("typing relays to the partner only, not the room", () => {
+  const io = fakeIo();
+  const socket = fakeSocket("sTyping");
+  registerPairChat(io, socket, { sTyping: { room: "r1", partner: "s2" } });
+
+  socket.fire("pairTyping", { typing: true });
+  assert.strictEqual(io.sent.length, 1);
+  assert.strictEqual(io.sent[0].room, "s2"); // partner socket id, not the room
+  assert.deepStrictEqual(io.sent[0].payload, { typing: true });
+});

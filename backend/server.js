@@ -13,6 +13,7 @@ const authRoutes = require("./routes/auth.js");
 const imageAuthRoute = require("./routes/imageAuth.js");
 const { authMiddleware, optionalAuth } = require("./middleware/auth.js");
 const { registerGlobalChat } = require("./globalchat.js");
+const { registerPairChat } = require("./pairchat.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -138,6 +139,7 @@ io.on("connection", (socket) => {
   io.emit("onlineUsers", getOnlineCount());
 
   registerGlobalChat(io, socket);
+  registerPairChat(io, socket, chatPairs);
 
   socket.on("findChat", (collegeEmail, withVideo = false) => {
     const userEmail = socket.userEmail || collegeEmail;
@@ -159,18 +161,6 @@ io.on("connection", (socket) => {
     socket.emit("waiting");
     console.log(`User ${userEmail} looking for chat, video: ${withVideo}`);
     matchUsers();
-  });
-
-  socket.on("sendMessage", (message) => {
-    if (chatPairs[socket.id]) {
-      const userInfo = authenticatedUsers.get(socket.id);
-      io.to(chatPairs[socket.id].room).emit("message", {
-        sender: socket.id,
-        text: message,
-        senderEmail: userInfo?.email || "Anonymous",
-        timestamp: new Date().toISOString(),
-      });
-    }
   });
 
   socket.on("next", () => {
