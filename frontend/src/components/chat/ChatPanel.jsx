@@ -84,6 +84,17 @@ function ChatPanel({
         ) : (
           groups.map((group) => {
             const isOwn = group.authorKey === myKey;
+            // System notices are generated locally, not sent by anyone — they
+            // render as a centered line rather than as someone's message.
+            if (group.messages[0]?.system) {
+              return (
+                <div key={group.key} className="gc-system">
+                  {group.messages.map((m) => (
+                    <p key={m.id}>{m.text}</p>
+                  ))}
+                </div>
+              );
+            }
             return (
               <div
                 key={group.key}

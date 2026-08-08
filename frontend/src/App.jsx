@@ -87,8 +87,12 @@ function App() {
       console.log("✅ Chat started, Video:", withVideo);
       setMessages([
         {
-          type: "system",
+          id: `sys-${Date.now()}`,
+          sender: "__system__",
+          system: true,
           text: "Connected to chat partner",
+          timestamp: new Date().toISOString(),
+          reactions: {},
         },
       ]);
       socket.emit("ready-to-connect");
@@ -190,8 +194,12 @@ function App() {
       setMessages((prev) => [
         ...prev,
         {
+          id: `sys-${Date.now()}`,
+          sender: "__system__",
+          system: true,
           text: "Your chat partner disconnected. Finding a new user...",
-          type: "system",
+          timestamp: new Date().toISOString(),
+          reactions: {},
         },
       ]);
 
