@@ -12,6 +12,8 @@ dotenv.config();
 const authRoutes = require("./routes/auth.js");
 const imageAuthRoute = require("./routes/imageAuth.js");
 const { authMiddleware, optionalAuth } = require("./middleware/auth.js");
+const { moderateMessage } = require("./moderation.js");
+const FlaggedMessage = require("./models/FlaggedMessage.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -107,6 +109,31 @@ let chatPairs = {};
 let rtcReadyUsers = new Set();
 let authenticatedUsers = new Map();
 
+// Global chat: shared public room. Keep the last 50 messages in memory.
+const GLOBAL_HISTORY_LIMIT = 50;
+let globalMessages = [];
+
+// Per-socket rate limit for global chat.
+const GLOBAL_RATE_MS = 1500;
+const lastGlobalMessageAt = new Map(); // socketId -> timestamp
+
+// Resolve the sender email from the socket's JWT (isolated from matchmaking auth).
+// Verifies once and caches on socket.userEmail. Returns null if no/invalid token.
+function resolveGlobalSender(socket) {
+  if (socket.userEmail) return socket.userEmail;
+  const raw = socket.handshake.auth?.token || socket.handshake.headers?.authorization;
+  if (!raw) return null;
+  const token = raw.startsWith("Bearer ") ? raw.substring(7) : raw;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded.email) return null;
+    socket.userEmail = decoded.email;
+    return decoded.email;
+  } catch (err) {
+    return null;
+  }
+}
+
 // FIX 3: Track users that recently clicked "next" so they can't be immediately
 // re-paired with the same person. The set is keyed by socketId and cleared
 // after a short cooldown window.
@@ -135,6 +162,9 @@ io.on("connection", (socket) => {
   }
 
   io.emit("onlineUsers", getOnlineCount());
+
+  // Send current global chat history to the newly connected socket.
+  socket.emit("globalHistory", globalMessages);
 
   socket.on("findChat", (collegeEmail, withVideo = false) => {
     const userEmail = socket.userEmail || collegeEmail;
@@ -168,6 +198,66 @@ io.on("connection", (socket) => {
         timestamp: new Date().toISOString(),
       });
     }
+  });
+
+  socket.on("globalMessage", async (text) => {
+    if (typeof text !== "string") return;
+    const message = text.trim();
+    if (!message) return;
+
+    if (message.length > 500) {
+      socket.emit("globalMessageBlocked", { reason: "Message too long (500 char max)." });
+      return;
+    }
+
+    const email = resolveGlobalSender(socket);
+    if (!email) {
+      socket.emit("globalMessageBlocked", { reason: "You must be logged in to chat." });
+      return;
+    }
+
+    // Rate limit — record the attempt immediately so blocked/spam messages
+    // are throttled too (not just successful ones).
+    const now = Date.now();
+    const last = lastGlobalMessageAt.get(socket.id) || 0;
+    if (now - last < GLOBAL_RATE_MS) {
+      socket.emit("globalMessageBlocked", { reason: "Slow down a moment." });
+      return;
+    }
+    lastGlobalMessageAt.set(socket.id, now);
+
+    // Moderate (word-list then Groq, fail-open).
+    const verdict = await moderateMessage(message);
+    if (!verdict.ok) {
+      try {
+        await FlaggedMessage.create({
+          email,
+          text: message,
+          reason: verdict.reason,
+          category: verdict.category,
+          socketId: socket.id,
+        });
+      } catch (err) {
+        console.error("Failed to log flagged message:", err.message);
+      }
+      socket.emit("globalMessageBlocked", { reason: "Message blocked by moderation." });
+      return;
+    }
+
+    const outgoing = {
+      id: uuidv4(),
+      sender: socket.id,
+      name: email.split("@")[0],
+      text: message,
+      timestamp: new Date().toISOString(),
+    };
+
+    globalMessages.push(outgoing);
+    if (globalMessages.length > GLOBAL_HISTORY_LIMIT) {
+      globalMessages = globalMessages.slice(-GLOBAL_HISTORY_LIMIT);
+    }
+
+    io.emit("globalMessage", outgoing);
   });
 
   socket.on("next", () => {
@@ -280,6 +370,7 @@ io.on("connection", (socket) => {
     videoEnabledUsers.delete(socket.id);
     rtcReadyUsers.delete(socket.id);
     nextCooldownUsers.delete(socket.id);
+    lastGlobalMessageAt.delete(socket.id);
 
     if (chatPairs[socket.id]) {
       const partnerId = chatPairs[socket.id].partner;

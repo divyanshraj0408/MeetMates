@@ -70,6 +70,7 @@ MONGODB_URI=mongodburl
 JWT_SECRET=jwt
 CORS_ORIGIN=http://localhost:5173,https://www.meetmates.space
 PORT=3001
+GROQ_API_KEY=your_groq_api_key_from_console.groq.com
 ```
 ### 🎯 Future Enhancements
 

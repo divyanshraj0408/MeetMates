@@ -15,6 +15,8 @@ function App() {
   const [onlineUserCount, setOnlineUserCount] = useState(0);
   const [currentPartnerId, setCurrentPartnerId] = useState(null);
   const [isVideoChat, setIsVideoChat] = useState(false);
+  const [globalMessages, setGlobalMessages] = useState([]);
+  const [globalBlockNotice, setGlobalBlockNotice] = useState(null);
 
   // FIX: Track when the user intentionally ends the call so that the
   // partnerLeft handler doesn't auto-rejoin them into matchmaking.
@@ -95,6 +97,18 @@ function App() {
       setMessages((prev) => [...prev, { text: data.text, type: messageType }]);
     });
 
+    socket.on("globalHistory", (history) => {
+      setGlobalMessages(Array.isArray(history) ? history : []);
+    });
+
+    socket.on("globalMessage", (msg) => {
+      setGlobalMessages((prev) => [...prev, msg]);
+    });
+
+    socket.on("globalMessageBlocked", (data) => {
+      setGlobalBlockNotice(data?.reason || "Message blocked.");
+    });
+
     socket.on("partnerLeft", (data) => {
       console.log("Partner left:", data);
       setMessages((prev) => [
@@ -136,6 +150,9 @@ function App() {
       socket.off("message");
       socket.off("partnerLeft");
       socket.off("error");
+      socket.off("globalHistory");
+      socket.off("globalMessage");
+      socket.off("globalMessageBlocked");
     };
   }, []);
 
@@ -174,6 +191,13 @@ function App() {
   const handleSendMessage = (message) => {
     if (message.trim()) {
       socket.emit("sendMessage", message);
+    }
+  };
+
+  const handleSendGlobal = (message) => {
+    if (message.trim()) {
+      setGlobalBlockNotice(null);
+      socket.emit("globalMessage", message);
     }
   };
 
@@ -222,6 +246,16 @@ function App() {
             onStart={(email, withVideo) => {
               localStorage.setItem("collegeEmail", email);
               localStorage.setItem("withVideo", withVideo);
+              // Connect the socket on fresh login so the global chat on the
+              // start screen receives history and can send messages. Without
+              // this, only auto-login users had a live socket.
+              const token = localStorage.getItem("token");
+              if (token) {
+                socket.auth = { token };
+                if (!socket.connected) {
+                  socket.connect();
+                }
+              }
               setCurrentScreen("start");
             }}
             goBack={() => setCurrentScreen("home")}
@@ -242,6 +276,9 @@ function App() {
             goBack={() => setCurrentScreen("home")}
             onLogout={logout}
             onlineUserCount={onlineUserCount}
+            globalMessages={globalMessages}
+            onSendGlobal={handleSendGlobal}
+            globalBlockNotice={globalBlockNotice}
           />
         );
 
@@ -258,6 +295,9 @@ function App() {
             logout={logout}
             onlineUserCount={onlineUserCount}
             loading={true}
+            globalMessages={globalMessages}
+            onSendGlobal={handleSendGlobal}
+            globalBlockNotice={globalBlockNotice}
           />
         );
 

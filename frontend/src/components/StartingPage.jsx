@@ -1,9 +1,25 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import socket from "../Socket";
 import "./startpage.css";
 // import { LogOut } from "lucide-react";
 
-function StartPage({ onStartChat, onLogout, onlineUserCount,loading }) {
+function StartPage({ onStartChat, onLogout, onlineUserCount, loading, globalMessages = [], onSendGlobal, globalBlockNotice }) {
   const videoRef = useRef(null);
+
+  const [globalInput, setGlobalInput] = useState("");
+  const globalEndRef = useRef(null);
+
+  useEffect(() => {
+    globalEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [globalMessages]);
+
+  const handleGlobalSubmit = (e) => {
+    e.preventDefault();
+    if (globalInput.trim() && onSendGlobal) {
+      onSendGlobal(globalInput);
+      setGlobalInput("");
+    }
+  };
 
   useEffect(() => {
     const getMedia = async () => {
@@ -69,13 +85,38 @@ function StartPage({ onStartChat, onLogout, onlineUserCount,loading }) {
                 </div>
             <div className="text-chat-section1 globalchat-container">
               <div className="messages-container">
-                Global Chat Coming soon...
+                {globalMessages.length === 0 ? (
+                  <p className="global-empty">No messages yet. Say hi 👋</p>
+                ) : (
+                  globalMessages.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`global-msg ${m.sender === socket.id ? "own" : ""}`}
+                    >
+                      <span className="global-msg-name">{m.name}</span>
+                      <span className="global-msg-text">{m.text}</span>
+                    </div>
+                  ))
+                )}
+                <div ref={globalEndRef} />
               </div>
-              <form className="message-form">
+              {globalBlockNotice && (
+                <p className="global-block-notice">{globalBlockNotice}</p>
+              )}
+              <form className="message-form" onSubmit={handleGlobalSubmit}>
                 <textarea
                   placeholder="Type a message..."
+                  value={globalInput}
+                  onChange={(e) => setGlobalInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      handleGlobalSubmit(e);
+                    }
+                  }}
                 />
-                <button type="submit" className="send-button" disabled="true" >Shoot</button>
+                <button type="submit" className="send-button" disabled={!globalInput.trim()}>
+                  Shoot
+                </button>
               </form>
             </div>
         </div>
