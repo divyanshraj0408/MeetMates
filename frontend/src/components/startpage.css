@@ -27,6 +27,11 @@
 /* Main Content */
 .content {
   flex: 1;
+  /* Flex items default to min-height:auto, so without this .content refuses to
+     shrink below its content and the chat's message list inflates the whole
+     column instead of scrolling inside itself. Every min-height:0 further down
+     the tree is inert while this ancestor is unbounded. */
+  min-height: 0;
   display: flex;
   justify-content: center;
   gap: 20px;
@@ -213,7 +218,13 @@
 }
 
 .pane-preview {
-  flex: 0 0 200px;
+  /* Height follows the pane's width rather than a fixed pixel value, so the
+     preview grows with the window instead of staying a 200px strip on a big
+     screen. Clamped so it never dominates or vanishes. */
+  flex: 0 0 auto;
+  aspect-ratio: 16 / 9;
+  min-height: 150px;
+  max-height: 40%;
   margin-bottom: 20px;
 }
 
@@ -256,6 +267,11 @@
   }
 
   .pane-preview.pane-active {
+    /* On mobile the preview is a whole tab, so it fills the pane instead of
+       being driven by the desktop aspect-ratio clamp. */
     flex: 1 1 auto;
+    aspect-ratio: auto;
+    max-height: none;
+    margin-bottom: 0;
   }
 }
