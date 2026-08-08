@@ -101,7 +101,17 @@ function App() {
     socket.on("globalIdentity", ({ uid }) => setMyUid(uid));
 
     socket.on("globalHistory", (history) => {
-      setGlobalMessages(Array.isArray(history) ? history : []);
+      const list = Array.isArray(history) ? history : [];
+      setGlobalMessages((prev) => {
+        // A reconnect re-sends history. Keep any message we sent that the
+        // server has not acknowledged yet, so it is not silently dropped —
+        // unless this snapshot already contains it.
+        const acked = new Set(list.map((m) => m.clientId).filter(Boolean));
+        const pending = prev.filter(
+          (m) => m.status === "sending" && m.clientId && !acked.has(m.clientId)
+        );
+        return [...list, ...pending];
+      });
     });
 
     socket.on("globalMessage", (msg) => {
