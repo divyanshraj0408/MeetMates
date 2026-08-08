@@ -1,0 +1,241 @@
+/* Every selector here is gc- prefixed. videochat.css defines unscoped
+   .messages-container, .message-form and .send-button rules that apply on every
+   page, and one of them (height: 100%) is what broke this layout before. */
+
+.gc-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border: 4px solid #0099ff;
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.gc-list {
+  flex: 1;
+  min-height: 0;          /* lets this element scroll instead of growing */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
+}
+
+.gc-empty {
+  margin: auto;
+  opacity: 0.6;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.gc-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gc-name {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-left: 40px;
+  margin-bottom: 2px;
+}
+
+.gc-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.gc-row-own {
+  flex-direction: row-reverse;
+}
+
+.gc-avatar-slot {
+  width: 32px;
+  flex: 0 0 32px;
+}
+
+.gc-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  user-select: none;
+}
+
+.gc-body {
+  display: flex;
+  flex-direction: column;
+  max-width: 78%;
+  min-width: 0;
+}
+
+.gc-row-own .gc-body {
+  align-items: flex-end;
+}
+
+.gc-bubble-wrap {
+  position: relative;
+}
+
+.gc-bubble {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
+}
+
+.gc-bubble-own {
+  background: #2f5cff;
+}
+
+.gc-bubble-pending {
+  opacity: 0.55;
+}
+
+.gc-bubble-blocked {
+  background: rgba(255, 107, 107, 0.2);
+  outline: 1px solid #ff6b6b;
+}
+
+.gc-react-bar {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: #2b2b2b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  z-index: 2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.gc-row-own .gc-react-bar {
+  left: auto;
+  right: 0;
+}
+
+.gc-react-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 3px;
+  border-radius: 50%;
+}
+
+.gc-react-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.gc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: -6px;
+  padding: 0 4px;
+}
+
+.gc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #2b2b2b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 0.75rem;
+  color: #fff;
+  cursor: pointer;
+}
+
+.gc-chip-mine {
+  border-color: #2f5cff;
+  background: rgba(47, 92, 255, 0.25);
+}
+
+.gc-chip-count {
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+.gc-meta {
+  display: flex;
+  gap: 6px;
+  font-size: 0.65rem;
+  opacity: 0.6;
+  padding: 2px 4px;
+}
+
+.gc-meta-blocked {
+  color: #ff6b6b;
+  opacity: 1;
+}
+
+.gc-typing {
+  min-height: 16px;
+  padding: 0 14px 2px;
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+
+.gc-form {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.gc-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid #c2a8ff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: none;
+}
+
+.gc-input:focus {
+  outline: none;
+  border-color: #0099ff;
+}
+
+.gc-send {
+  background-color: #c2a8ff;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gc-send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
