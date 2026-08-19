@@ -7,6 +7,11 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* Cap the call surface. Uncapped, a 2560px screen stretched the partner
+     tile to 1461px and the layout stopped reading as a conversation. */
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
 }
 
 .video-grid {
@@ -14,11 +19,13 @@
   grid-template-columns: 1.4fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 15px;
-  margin-bottom: 15px;
-  /* Takes the space the chat pane does not claim. */
+  /* The grid is the container's only child, so it simply fills it. */
   flex: 1 1 auto;
   min-height: 0;
-  align-items: start;
+  /* Not align-items:start — that let the local tile shrink to its content
+     (162px tall at every width, however wide the column got) instead of
+     filling its row. Stretching splits column 2 evenly: camera above,
+     chat below. */
 }
 
 .video-grid > :first-child {
@@ -203,7 +210,6 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  flex: 0 0 38%;
   min-height: 0;
 }
 
