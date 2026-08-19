@@ -3,12 +3,24 @@
    page, and one of them (height: 100%) is what broke this layout before. */
 
 .gc-root {
+  /* The panel owns its own colors. It used to inherit them, which made every
+     label black-on-#1e1e1e on the video page — that page sets no color, while
+     the lobby happens to set white. A self-contained surface cannot depend on
+     an ancestor to stay legible. */
+  --gc-surface: #1c1c1e;
+  --gc-ink: #f2f2f7;
+  --gc-ink-dim: #8e8e93;
+  --gc-own: #0099ff;
+  --gc-them: #2f2f33;
+  --gc-accent: #c2a8ff;
+
+  color: var(--gc-ink);
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  border: 4px solid #0099ff;
-  background-color: #1e1e1e;
+  border: 4px solid var(--gc-own);
+  background-color: var(--gc-surface);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -25,9 +37,15 @@
   scrollbar-width: thin;
 }
 
+/* A sparse conversation should sit on the composer, not float at the top of an
+   empty box. Pushing only the first child keeps overflow scrolling intact. */
+.gc-list > *:first-child {
+  margin-top: auto;
+}
+
 .gc-empty {
   margin: auto;
-  opacity: 0.6;
+  color: var(--gc-ink-dim);
   font-size: 0.9rem;
   text-align: center;
 }
@@ -40,7 +58,7 @@
 
 .gc-name {
   font-size: 0.7rem;
-  opacity: 0.7;
+  color: var(--gc-ink-dim);
   margin-left: 40px;
   margin-bottom: 2px;
 }
@@ -90,11 +108,13 @@
 }
 
 .gc-bubble {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  padding: 8px 12px;
+  background: var(--gc-them);
+  color: var(--gc-ink);
+  padding: 7px 12px;
   border: none;
-  border-radius: 14px;
+  /* The corner on the speaker's side is tight, the rest round: the shape says
+     who spoke, so alignment is not carrying that alone. */
+  border-radius: 16px 16px 16px 5px;
   font: inherit;
   font-size: 0.9rem;
   text-align: left;
@@ -105,7 +125,8 @@
 }
 
 .gc-bubble-own {
-  background: #2f5cff;
+  background: var(--gc-own);
+  border-radius: 16px 16px 5px 16px;
 }
 
 .gc-bubble-pending {
@@ -167,26 +188,26 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: -6px;
-  padding: 0 4px;
+  margin-top: 3px;
+  padding: 0 2px;
 }
 
 .gc-chip {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  background: #2b2b2b;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #2b2b2e;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
   padding: 1px 7px;
   font-size: 0.75rem;
-  color: #fff;
+  color: var(--gc-ink);
   cursor: pointer;
 }
 
 .gc-chip-mine {
-  border-color: #2f5cff;
-  background: rgba(47, 92, 255, 0.25);
+  border-color: var(--gc-own);
+  background: rgba(0, 153, 255, 0.22);
 }
 
 .gc-chip-count {
@@ -197,9 +218,9 @@
 .gc-meta {
   display: flex;
   gap: 6px;
-  font-size: 0.65rem;
-  opacity: 0.6;
-  padding: 2px 4px;
+  font-size: 0.66rem;
+  color: var(--gc-ink-dim);
+  padding: 1px 4px;
 }
 
 .gc-meta-blocked {
@@ -208,10 +229,11 @@
 }
 
 .gc-typing {
-  min-height: 16px;
-  padding: 0 14px 2px;
+  min-height: 18px;
+  padding: 0 14px 4px;
   font-size: 0.72rem;
-  opacity: 0.7;
+  color: var(--gc-ink-dim);
+  font-style: italic;
 }
 
 .gc-form {
@@ -224,26 +246,32 @@
 .gc-input {
   flex: 1;
   min-width: 0;
-  height: 44px;
-  padding: 12px;
-  border-radius: 8px;
-  border: 2px solid #c2a8ff;
+  height: 42px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #262629;
+  color: var(--gc-ink);
   font-family: inherit;
   font-size: 0.9rem;
   resize: none;
 }
 
+.gc-input::placeholder {
+  color: var(--gc-ink-dim);
+}
+
 .gc-input:focus {
   outline: none;
-  border-color: #0099ff;
+  border-color: var(--gc-own);
 }
 
 .gc-send {
-  background-color: #c2a8ff;
-  color: #000;
+  background-color: var(--gc-accent);
+  color: #17171a;
   border: none;
-  border-radius: 8px;
-  padding: 0 16px;
+  border-radius: 10px;
+  padding: 0 18px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -254,9 +282,19 @@
 }
 
 .gc-system {
-  align-self: center;
-  text-align: center;
-  font-size: 0.72rem;
-  opacity: 0.55;
-  padding: 2px 8px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.68rem;
+  color: var(--gc-ink-dim);
+  padding: 2px 4px;
+}
+
+.gc-system::before,
+.gc-system::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.09);
 }

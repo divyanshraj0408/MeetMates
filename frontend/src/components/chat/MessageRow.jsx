@@ -53,7 +53,7 @@ function MessageRow({ message, isOwn, isLast, myKey, showIdentity = true, onReac
         {(isLast || status) && (
           <div className="gc-meta">
             {status === "sending" && <span>Sending…</span>}
-            {status === "delivered" && isOwn && <span>Delivered</span>}
+            {status === "delivered" && isOwn && isLast && <span>Delivered</span>}
             {status === "blocked" && (
               <span className="gc-meta-blocked">
                 {message.blockReason || "Blocked"}
