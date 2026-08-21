@@ -209,3 +209,12 @@ button[type="submit"],
     transform: rotate(360deg);
   }
 }
+
+/* Our wrapper around Google's iframe. The button itself is sized through
+   renderButton's `width` option — GIS caps it at 400px, so on a wider card it
+   needs centring here rather than being left to hug the left edge. */
+.google-sdk-button {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}

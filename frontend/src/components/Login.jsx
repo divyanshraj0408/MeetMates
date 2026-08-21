@@ -27,8 +27,12 @@ function Login({
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    renderGoogleButton("google-signin-btn", CLIENT_ID, handleGoogleResponse);
-  }, []);
+    // The container is conditionally rendered, so it remounts empty whenever
+    // selectedImage flips. Re-running on that dependency keeps the button from
+    // disappearing for good after picking an image and clearing it.
+    if (selectedImage) return undefined;
+    return renderGoogleButton("google-signin-btn", CLIENT_ID, handleGoogleResponse);
+  }, [selectedImage]);
 
   const handleGoogleResponse = async (response) => {
     try {
