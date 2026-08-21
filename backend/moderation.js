@@ -1,16 +1,65 @@
 const axios = require("axios");
 
-// Small explicit blocklist. Extend as needed. Matched with word boundaries
-// (see BAD_WORD_RE) so innocent words containing a bad substring are not blocked.
-const BAD_WORDS = [
+// Explicit blocklists, matched whole-word (see BAD_WORD_RE) so innocent words
+// containing a bad substring are not blocked.
+//
+// These carry more weight than they look: gate 1 is the ONLY gate the 1:1 chat
+// runs, and the only one left standing when Groq is unreachable, since gate 2
+// fails open.
+//
+// Scope rule: gate 1 holds terms that are abusive with no context needed.
+// Anything that depends on context — "bc"/"mc" (also "B.C.", "MCA"), "saala"
+// (also brother-in-law), "kutta", "kamina", "bakchod" (routine student banter)
+// — is deliberately left to gate 2, which reads the whole sentence.
+const BAD_WORDS_EN = [
   "bitch", "fuck", "shit", "asshole", "bastard", "slut", "whore",
   "nigger", "faggot", "retard", "cunt", "dick", "pussy", "rape",
+];
+
+// Roman-script Hindi. This is what students actually type, so it matters more
+// than the Devanagari list. Spelling is not standardised, hence the variants.
+const BAD_WORDS_HINGLISH = [
+  "madarchod", "madarchood", "madharchod", "maderchod",
+  "behenchod", "bhenchod", "behanchod", "benchod",
+  "bhosdike", "bhosdi", "bhosda", "bhosadike", "bhosade",
+  "chutiya", "chutiye", "chutia", "chutiyapa",
+  "gandu", "gaandu", "gaand",
+  "randi", "chinal",
+  "lund", "lauda",
+  "harami", "haramzada", "haramkhor",
+  "bhadwa", "bhadve",
+  "chod", "chodu", "chudai",
+  "chut", "choot",
+  "jhaat", "jhant",
+];
+
+// Devanagari. Nukta spellings vary, so both forms are listed where they differ.
+const BAD_WORDS_DEVANAGARI = [
+  "मादरचोद", "मादरचूद",
+  "भोसड़ी", "भोसड़ीके", "भोसडी", "भोसडीके",
+  "चूतिया", "चुतिया", "चूतिये", "चुतिये",
+  "गांडू", "गाण्डू", "गांड",
+  "रंडी", "चिनाल",
+  "लंड", "लौड़ा", "लौडा",
+  "हरामी", "हरामज़ादा", "हरामजादा",
+  "भड़वा", "भडवा",
+  "चोदू", "चोद",
+  "झांट", "झाँट",
+];
+
+const BAD_WORDS = [
+  ...BAD_WORDS_EN,
+  ...BAD_WORDS_HINGLISH,
+  ...BAD_WORDS_DEVANAGARI,
 ];
 
 // Normalize leet substitutions but PRESERVE spaces/punctuation so word
 // boundaries survive (prevents "grape" matching "rape", "Scunthorpe" -> "cunt").
 function normalize(text) {
   return String(text)
+    // Devanagari has precomposed and decomposed spellings of the same
+    // character (ड़ is one code point or two), so canonicalise before matching.
+    .normalize("NFC")
     .toLowerCase()
     .replace(/[@4]/g, "a")
     .replace(/[3]/g, "e")
@@ -19,7 +68,13 @@ function normalize(text) {
     .replace(/[$5]/g, "s");
 }
 
-const BAD_WORD_RE = new RegExp(`\\b(${BAD_WORDS.join("|")})\\b`, "i");
+// \b is defined on [A-Za-z0-9_], so every Devanagari character counts as a
+// non-word character and \bमादरचोद\b can never match. These Unicode lookarounds
+// are the script-agnostic equivalent.
+const BAD_WORD_RE = new RegExp(
+  `(?<![\\p{L}\\p{N}])(${BAD_WORDS.join("|")})(?![\\p{L}\\p{N}])`,
+  "iu"
+);
 
 function wordListHit(text) {
   return BAD_WORD_RE.test(normalize(text));
@@ -138,4 +193,5 @@ module.exports = {
   parseGuardResponse,
   MODERATION_POLICY,
   GROQ_MODEL,
+  BAD_WORDS,
 };

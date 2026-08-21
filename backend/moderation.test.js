@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert");
-const { moderateMessage, parseGuardResponse } = require("./moderation");
+const { moderateMessage, parseGuardResponse, wordListHit } = require("./moderation");
 
 // Fake Groq client that records calls and returns a canned verdict.
 function fakeGroq(verdict) {
@@ -114,4 +114,46 @@ test("parseGuardResponse marks a plain safe verdict as well-formed", () => {
   const verdict = parseGuardResponse("safe");
   assert.strictEqual(verdict.unsafe, false);
   assert.notStrictEqual(verdict.malformed, true);
+});
+
+// --- Hindi and Hinglish -----------------------------------------------------
+// The student body writes in Devanagari, in Roman-script Hindi, and in mixed
+// code-switched sentences. Gate 1 has to cover all three: it is the only gate
+// the 1:1 chat runs, and the only one left when Groq is unreachable.
+
+test("gate 1 catches Devanagari abuse", () => {
+  assert.strictEqual(wordListHit("तू मादरचोद है"), true);
+  assert.strictEqual(wordListHit("भोसड़ीके कहीं का"), true);
+});
+
+test("gate 1 catches Roman-script Hindi abuse", () => {
+  assert.strictEqual(wordListHit("abe chutiye teri maa ki"), true);
+  assert.strictEqual(wordListHit("bhosdike tu randi ka bacha hai"), true);
+  assert.strictEqual(wordListHit("madarchod kahin ke"), true);
+});
+
+test("gate 1 catches abuse inside a code-switched sentence", () => {
+  assert.strictEqual(wordListHit("bro that assignment was chutiya level hard"), true);
+});
+
+test("Devanagari matching is not defeated by ASCII word boundaries", () => {
+  // \b is defined on [A-Za-z0-9_], so every Devanagari character reads as a
+  // non-word character and \bमादरचोद\b never matches. This asserts the
+  // Unicode-aware guard is in place instead.
+  assert.strictEqual(wordListHit("मादरचोद"), true);
+  assert.strictEqual(wordListHit("यह मादरचोद है"), true);
+});
+
+test("does not block legitimate words that contain a slur as a substring", () => {
+  assert.strictEqual(wordListHit("pass me the chutney please"), false);
+  assert.strictEqual(wordListHit("chhod do yaar"), false);
+  assert.strictEqual(wordListHit("Laura is presenting first"), false);
+  assert.strictEqual(wordListHit("मैं लंदन जा रहा हूँ"), false);
+});
+
+test("does not block ordinary Hindi and Hinglish conversation", () => {
+  assert.strictEqual(wordListHit("yaar koi CS branch se hai kya"), false);
+  assert.strictEqual(wordListHit("कोई CS विभाग से है क्या"), false);
+  assert.strictEqual(wordListHit("arre yaar bahut mushkil hai ye subject"), false);
+  assert.strictEqual(wordListHit("bhai deadline kab hai"), false);
 });
