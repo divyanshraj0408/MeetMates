@@ -2,7 +2,7 @@
 
 :root {
   --background: #fffaff; /* Stark white with a subtle tint */
-  --foreground: #0d0d0d; /* Deep black for strong contrast */
+  --foreground: #0d0d0e; /* Deep black for strong contrast */
   --primary: #d43f24; /* Muted, rich red instead of harsh neon */
   --primary-foreground: #ffffff; /* White text on primary */
   --secondary: #f5f5f5; /* Light gray for soft contrast */
