@@ -68,3 +68,50 @@ test("parseGuardResponse reads safe", () => {
 test("parseGuardResponse reads unsafe with category", () => {
   assert.deepStrictEqual(parseGuardResponse("unsafe\nS1"), { unsafe: true, category: "S1" });
 });
+
+// --- gpt-oss-safeguard-20b response shapes ---------------------------------
+// Llama Guard was decommissioned by Groq (HTTP 400 model_decommissioned) and
+// replaced with a policy classifier that answers "unsafe:S1" on one line
+// rather than "unsafe\nS1" across two.
+
+test("parseGuardResponse reads the colon-delimited unsafe form", () => {
+  assert.deepStrictEqual(parseGuardResponse("unsafe:S1"), {
+    unsafe: true,
+    category: "S1",
+  });
+});
+
+test("parseGuardResponse still reads the newline-delimited form", () => {
+  assert.deepStrictEqual(parseGuardResponse("unsafe\nS4"), {
+    unsafe: true,
+    category: "S4",
+  });
+});
+
+test("parseGuardResponse tolerates spacing and case around the category", () => {
+  assert.strictEqual(parseGuardResponse("UNSAFE: s3").category, "S3");
+  assert.strictEqual(parseGuardResponse("unsafe : S2 ").category, "S2");
+});
+
+test("parseGuardResponse reports unknown when no category is given", () => {
+  assert.deepStrictEqual(parseGuardResponse("unsafe"), {
+    unsafe: true,
+    category: "unknown",
+  });
+});
+
+test("parseGuardResponse treats a conversational reply as unclassified", () => {
+  // The classifier answers conversationally if the policy prompt is missing.
+  // That must not be read as a pass — it means the call was misconfigured.
+  const verdict = parseGuardResponse(
+    "I'm sorry you're feeling upset, but I can't help with that."
+  );
+  assert.strictEqual(verdict.unsafe, false);
+  assert.strictEqual(verdict.malformed, true);
+});
+
+test("parseGuardResponse marks a plain safe verdict as well-formed", () => {
+  const verdict = parseGuardResponse("safe");
+  assert.strictEqual(verdict.unsafe, false);
+  assert.notStrictEqual(verdict.malformed, true);
+});

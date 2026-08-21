@@ -71,12 +71,14 @@ JWT_SECRET=jwt
 CORS_ORIGIN=http://localhost:5173,https://www.meetmates.space
 PORT=3001
 GROQ_API_KEY=your_groq_api_key_from_console.groq.com
+# Used by backend/moderation.js for AI moderation (Gate 2), via the model
+# named in GROQ_MODEL there. That gate fails open: if the key is missing or
+# the model is retired, messages are allowed and the error is logged only.
 ```
 ### 🎯 Future Enhancements
 
 - Interest-Based Matching – Connect students with similar interests.
 - Text Chat Feature – Add real-time messaging alongside video calls.
-- AI Moderation – Implement AI-based content moderation for safety.
     
 ### 📜 License
 
