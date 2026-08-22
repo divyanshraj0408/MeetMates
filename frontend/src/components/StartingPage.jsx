@@ -27,12 +27,19 @@ function StartPage({
   // Mobile only: the right box shows one pane at a time. Desktop shows both.
   const [mobileTab, setMobileTab] = useState("chat");
 
-  const [genderFilter, setGenderFilter] = useState(
-    () => localStorage.getItem("filterGender") || ""
-  );
-  const [locationFilter, setLocationFilter] = useState(
-    () => localStorage.getItem("filterLocation") || "worldwide"
-  );
+  // Validated on read, not just defaulted. localStorage outlives any build, so
+  // a value we stopped recognising still shows up here. An unvetted one is
+  // truthy enough to light the chip up as active while GENDER_LABEL has no
+  // entry for it, leaving a lit chip with a blank label — the server would
+  // sanitize it away, so the UI would claim a filter that is not being applied.
+  const [genderFilter, setGenderFilter] = useState(() => {
+    const stored = localStorage.getItem("filterGender") || "";
+    return GENDER_CYCLE.includes(stored) ? stored : "";
+  });
+  const [locationFilter, setLocationFilter] = useState(() => {
+    const stored = localStorage.getItem("filterLocation");
+    return stored === "country" ? "country" : "worldwide";
+  });
   // "My country" needs a country to compare against. EditProfile fetches its own
   // profile rather than App holding it, so this follows the same pattern.
   const [myCountry, setMyCountry] = useState("");
