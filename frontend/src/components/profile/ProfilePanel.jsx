@@ -31,6 +31,7 @@ function ProfilePanel({ profile, inCall = false, startOpen = false }) {
       <button
         type="button"
         className="pf-panel-toggle"
+        aria-label={open ? "hide their profile" : "see their profile"}
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
@@ -39,7 +40,7 @@ function ProfilePanel({ profile, inCall = false, startOpen = false }) {
           src={`${EMOJI_BASE}/identification-card_1faaa.png`}
           alt=""
         />
-        {open ? "hide" : "who's this?"}
+
       </button>
 
       {open && (

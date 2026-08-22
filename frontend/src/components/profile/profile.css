@@ -487,3 +487,43 @@
   font-size: 0.85rem;
   opacity: 0.75;
 }
+
+/* Matches the .filter chips it sits under in the lobby, so it reads as part of
+   the page rather than a bare button dropped onto it. */
+.pf-edit-link {
+  display: flex;
+  align-items: center;
+  margin-top: 18px;
+  background: #3c3c3c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-family: "Rethink Sans", sans-serif;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.pf-edit-link:hover {
+  background: #4a4a4a;
+}
+
+/* Interests: an input with suggestions rather than seven labelled sections.
+   Groups still colour the chips; they are just no longer announced. */
+.pf-picked {
+  margin-bottom: 12px;
+}
+
+.pf-suggest {
+  margin-top: 10px;
+}
+
+.pf-chip-x {
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+/* Icon-only toggle: no label, so it needs no width for text. */
+.pf-panel-toggle {
+  padding: 8px 10px;
+}

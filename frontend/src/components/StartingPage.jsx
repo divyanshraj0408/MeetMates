@@ -117,7 +117,12 @@ function StartPage({
             )}
           </button>
           <button type="button" className="pf-edit-link" onClick={onEditProfile}>
-            Edit your profile
+            <img
+              src="https://em-content.zobj.net/source/apple/419/writing-hand_270d-fe0f.png"
+              alt=""
+              style={{ width: "20px", marginRight: "8px" }}
+            />
+            your vibe
           </button>
         </div>
 
