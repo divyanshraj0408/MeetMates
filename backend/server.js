@@ -456,8 +456,12 @@ function createChatPair(user1, user2, withVideo) {
   const socket2 = io.sockets.sockets.get(user2);
 
   if (!socket1 || !socket2) {
-    if (socket1) waitingUsers.push(user1);
-    if (socket2) waitingUsers.push(user2);
+    // The survivor of a partner that vanished mid-pair goes back to waiting, so
+    // it needs a relax timer like any other queue entry. A plain push here left
+    // it as the one way into the queue with no timer attached, which meant a
+    // filtered survivor could wait indefinitely.
+    if (socket1) enqueue(user1);
+    if (socket2) enqueue(user2);
     return;
   }
 
