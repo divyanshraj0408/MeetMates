@@ -188,19 +188,71 @@ GSI script is `async defer`, so guard for `window.google` not existing yet.
 
 ---
 
-## Design system
+## Vibe and UI
 
-Palette actually in use — note the `:root` tokens in `App.css` are largely
-vestigial, `--primary` and `--accent` appear almost nowhere:
+Read the copy before touching anything visual — it sets the register more
+sharply than the palette does.
 
-yellow `#ffea00` (navbar) · blue `#0099ff` (borders, own bubbles, selected
-chips) · pink `#ff5ca2` / `#ff3f80` (CTA, headings) · purple `#c2a8ff` ·
-black `#0d0d0d` (borders) · darks `#1c1c1e` / `#2b2b2b` / `#3c3c3c`
+> **Social anxiety? Let's multiply it.**
+> No bios. No filters. Just unhinged energy.
 
-Type: **RightGrostek** display (local `.otf`), **Rethink Sans** body.
+That is the homepage, at 5em. The button under it says **Let's Go Wild!**. The
+lobby says **Lets Vibe ⚡**. The chat send button says **Shoot**. Skipping a
+partner is **Pass ›**. The online counter reads **"🤧 2 making sure she's ok."**,
+which is an in-joke rather than a feature description.
 
-Idiom: playful and sticker-like. Thick borders (3–5px), flat saturated fills,
-generous radii, hard offset shadows, no gradients on components.
+Pingo is not an earnest "meet meaningful people" product. The voice is chaotic,
+self-deprecating and slightly unhinged on purpose — it promises awkwardness
+rather than smoothing it over. Copy is lowercase-ish, contraction-heavy, closer
+to a group chat than a landing page. The logo is **pingo**, lowercase, in a
+heavy geometric display face. It shipped on Product Hunt under the earlier name
+Ping Pals.
+
+**Match that register in new copy.** "Complete your profile" is wrong here;
+"Tell us a bit about you" is closer. Error messages stay plain and unfussy —
+never apologetic, never corporate.
+
+### The look
+
+Neobrutalist-lite, or sticker-book. Flat saturated colour, thick black borders,
+hard offset shadows, pill radii, and no gradients on components — though page
+backgrounds are big flat blues and blue gradients.
+
+Palette actually in use. The `:root` tokens in `App.css` are largely vestigial —
+`--primary: #d43f24` and `--accent: #00ffcc` appear almost nowhere, so do not
+reach for them:
+
+| | |
+|---|---|
+| `#ffea00` yellow | navbar, the 18+ banner |
+| `#0099ff` blue | borders, own chat bubbles, selected chips, homepage ground |
+| `#ff5ca2` `#ff3f80` `#ff5599` pink | primary CTAs, headings |
+| `#c2a8ff` `#9b71ff` purple | secondary buttons |
+| `#0d0d0d` black | every border |
+| `#1c1c1e` `#2b2b2b` `#3c3c3c` | dark surfaces — chat, filter chips |
+
+Type: **RightGrostek** for display (local `.otf`, heavy and geometric),
+**Rethink Sans** for body. Display type runs large and unafraid — the homepage
+headline is 5em.
+
+Emoji are **Apple PNGs** from `em-content.zobj.net/source/apple/419/`, inline
+`<img>` at ~20px. That is a real stylistic choice, not laziness: Apple emoji
+read as texting, where an icon font would read as software. Keep using them.
+
+Buttons are chunky and want to be pressed — thick contrasting borders, generous
+padding, `translate(-2px,-2px)` plus a hard shadow on hover. The "Lets Vibe"
+button is pink with a 5px blue border, which should tell you how literally the
+"clashing but confident" rule is meant.
+
+### A tension worth naming
+
+**The tagline says "No bios. No filters."** Pingo now has bios, and
+profile-based matching — filters — is the next thing to build.
+
+That is not a reason to stop, but the homepage currently advertises the opposite
+of where the product is going, and the two should be reconciled deliberately
+rather than left to drift. Either the copy changes, or the feature is framed as
+something other than a filter. Worth deciding before matching ships.
 
 ---
 
