@@ -138,12 +138,29 @@ test("parseStatements returns [] for empty, null and refusal responses", () => {
   );
 });
 
-test("parseStatements caps each line at 120 chars", () => {
-  const longTail = "a".repeat(200);
-  const raw = `Never have I ever ${longTail}`;
-  const result = parseStatements(raw);
-  assert.equal(result.length, 1);
-  assert.ok(result[0].length <= 120);
+test("parseStatements drops over-long lines rather than truncating them", () => {
+  // Truncating produced half a sentence, which reads worse than one fewer
+  // statement. Length is also the proxy for the real problem: a long line is
+  // usually several deeds bolted together that nobody has done all of.
+  const raw = `Never have I ever ${"a".repeat(200)}`;
+  assert.deepStrictEqual(parseStatements(raw), []);
+});
+
+test("parseStatements drops compound lines", () => {
+  // The failure mode that kills a round: so specific nobody can put a finger
+  // down. These clauses are how the model stacks a second deed onto the first.
+  for (const line of [
+    "Never have I ever bunked a class and then bumped into my mom",
+    "Never have I ever texted an ex just to see if he would reply",
+    "Never have I ever faked a fever so that I could skip a wedding",
+  ]) {
+    assert.deepStrictEqual(parseStatements(line), [], line);
+  }
+});
+
+test("parseStatements keeps a short single-deed line", () => {
+  const line = "Never have I ever stalked an ex on Instagram";
+  assert.deepStrictEqual(parseStatements(line), [line]);
 });
 
 // ---------------------------------------------------------------------------
@@ -163,7 +180,7 @@ test("buildPrompt returns a distinct tone line per tier in the system prompt", (
 
 test("buildPrompt's suggestive tier explicitly rejects tameness", () => {
   const { system } = buildPrompt("suggestive", []);
-  assert.match(system.toLowerCase(), /coworkers/);
+  assert.match(system.toLowerCase(), /office icebreaker/);
   assert.match(system.toLowerCase(), /too tame/);
 });
 
@@ -192,8 +209,11 @@ test("buildPrompt asks for universal statements when no interests are given", ()
 // STATEMENTS_PER_BATCH
 // ---------------------------------------------------------------------------
 
-test("STATEMENTS_PER_BATCH is 6", () => {
-  assert.equal(STATEMENTS_PER_BATCH, 6);
+test("asks for more statements than a round needs", () => {
+  // The length, compound and second-person filters all reject lines, so the
+  // usable count is always below what we request. Asking for exactly a
+  // round's worth would leave rounds short.
+  assert.ok(STATEMENTS_PER_BATCH >= 10, String(STATEMENTS_PER_BATCH));
 });
 
 test("drops statements aimed at the other player", () => {

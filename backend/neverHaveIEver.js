@@ -9,9 +9,10 @@ const axios = require("axios");
 // been completed" via tierForRound below.
 const TIERS = ["playful", "cheeky", "flirty", "suggestive"];
 
-// How many statements we ask Groq for per call. Measured ~720ms for six
-// statements live, which is comfortably inside a call's pacing.
-const STATEMENTS_PER_BATCH = 6;
+// How many statements we ask Groq for per call. Asking for more than we need:
+// the length, compound-clause and second-person filters below all reject
+// lines, so the usable count is lower than this. Six took ~720ms live.
+const STATEMENTS_PER_BATCH = 10;
 
 // Model verified live against the Groq API. openai/gpt-oss-120b is a
 // reasoning model - see the reasoning_effort comment in generateStatements
@@ -78,7 +79,8 @@ function stripListMarker(line) {
   return line.replace(/^\s*(?:\d+[.)]|[-*])\s*/, "");
 }
 
-const MAX_STATEMENT_LENGTH = 120;
+const MAX_STATEMENT_LENGTH = 70;
+const COMPOUND = /\b(and then|just to|so that|after a|while i|in order to)\b/i;
 
 // Turns the raw model content into a clean array of statements. Must never
 // throw: malformed, empty, null, or refusal responses ("I'm sorry, I can't
@@ -100,6 +102,13 @@ function parseStatements(raw) {
     // ("Sure, here are some statements:") disappear rather than leak through.
     if (!/^never have i ever\s/i.test(clean)) continue;
 
+    // Length and compound-clause filters. The prompt asks for one deed under
+    // 60 characters; these are the enforcement, with a little slack. A line
+    // that stacks clauses ("...and then...", "...just to...") is the failure
+    // mode that makes a statement so specific nobody can put a finger down.
+    if (clean.length > MAX_STATEMENT_LENGTH) continue;
+    if (COMPOUND.test(clean)) continue;
+
     // Drop anything addressed at the other player. The prompt forbids it, but
     // the prompt also forbids non-ASCII and the model emits it anyway, so this
     // is enforced here too. A statement aimed at the person on the call is the
@@ -107,10 +116,11 @@ function parseStatements(raw) {
     // the cheaper failure. Word boundaries keep "youtuber" and "held" safe.
     if (/\b(you|your|yours|we|us|our|ours)\b/i.test(clean)) continue;
 
-    const capped = clean.slice(0, MAX_STATEMENT_LENGTH);
-    if (seen.has(capped)) continue;
-    seen.add(capped);
-    statements.push(capped);
+    // No truncation: over-length lines were rejected above rather than cut,
+    // because half a statement reads worse than one fewer statement.
+    if (seen.has(clean)) continue;
+    seen.add(clean);
+    statements.push(clean);
   }
 
   return statements;
@@ -122,21 +132,23 @@ function parseStatements(raw) {
 // is anchored against something concrete.
 const TIER_TONE = {
   playful:
-    "Tone: playful. Light, silly, everyday embarrassments - childhood mishaps, " +
-    "clumsy moments, harmless mistakes anyone would laugh off with a stranger.",
+    "Tone: playful. Light, silly, everyday embarrassments - school mishaps, " +
+    "clumsy moments, harmless lies to a teacher or parent. Things anyone would " +
+    "admit to a stranger while laughing.",
   cheeky:
-    "Tone: cheeky. Mischievous - small rule-breaking, white lies, minor cheating " +
-    "on tests or diets, petty revenge. Bolder than playful: these should carry a " +
-    "hint of guilt, not just clumsiness.",
+    "Tone: cheeky. Mischievous - proxy attendance, sneaking out, faking sick " +
+    "leave, eating someone's tiffin, small revenge on a roommate. Bolder than " +
+    "playful: these carry a hint of guilt, not just clumsiness.",
   flirty:
-    "Tone: flirty. Crushes, romantic tension, bad decisions made for someone " +
-    "attractive. Clearly bolder than cheeky: these should be about wanting or " +
-    "chasing someone, not just breaking a small rule.",
+    "Tone: flirty. Crushes, DMs sent at 2am, dating apps, relationships hidden " +
+    "from family, bad decisions made for someone attractive. Clearly bolder " +
+    "than cheeky: about wanting or chasing someone, not breaking a small rule.",
   suggestive:
     "Tone: suggestive - the boldest a party game gets between consenting adults. " +
-    "Attraction, hookups, wanting someone you shouldn't, drunk decisions, exes. " +
-    "Suggestive and bold, innuendo welcome, never graphic or anatomical. If a " +
-    "statement could appear in a round for coworkers, it is too tame - rewrite it.",
+    "Attraction, hookups, wanting someone unavailable, drunk decisions, exes, " +
+    "hotel check-ins with an ID problem. Innuendo welcome, never graphic or " +
+    "anatomical. If a line could be read aloud at an office icebreaker, it is " +
+    "too tame - rewrite it.",
 };
 
 // Builds the {system, user} prompt pair for one Groq call.
@@ -155,24 +167,53 @@ function buildPrompt(tier, interests) {
   const toneLine = TIER_TONE[tier] || TIER_TONE.playful;
 
   const system = [
-    "You write prompts for a 'Never Have I Ever' icebreaker game played by",
-    "two adult strangers (18+) who just matched on a video call in India.",
-    toneLine,
-    "Rules for every line:",
-    '- Start each line with exactly "Never have I ever ".',
-    "- One sentence per line.",
-    "- Under 90 characters per line.",
-    `- Output exactly ${STATEMENTS_PER_BATCH} lines, nothing else.`,
-    "- No numbering, no bullets, no headers, no commentary before or after.",
-    "- Nothing involving minors, coercion, or illegal acts.",
-    // The game is a confession about your own past, never a line aimed at the
-    // person across the call. Without this the model wrote "steal a moment
-    // alone with you" and "imagined our first kiss" — which is the app putting
-    // a come-on to a stranger on their screen in its own voice, rather than a
-    // thing both players opted into by playing. That distinction is the whole
-    // reason this feature is defensible, so it is a rule and not a preference.
-    "- Write about your own past only. Never address the other player.",
-    '- Never use "you", "your", "we", "us", or "our". Only "I" and "my".',
+    "You write lines for a 'Never Have I Ever' game played by two Indian adult",
+    "strangers (18+) who just matched on a video call. Most are late teens to",
+    "late twenties.",
+    "",
+  toneLine,
+    "",
+    "THE TEST: out of ten random Indian twenty-somethings, at least three must",
+    "be able to put a finger down. If a line is so specific that only one person",
+    "alive has done it, it is a dead round. Common and blunt beats clever and rare.",
+    "",
+    "SHAPE - this is where most attempts fail:",
+    "- ONE action. Not an action plus a setting plus a consequence.",
+    "- Under 60 characters. Short lines cannot be overstuffed.",
+    '- No "and then", no "just to", no "after a", no "so that", no "while".',
+    "- No explaining why. The line stops at the deed.",
+    "- No stacking Indian nouns to prove the setting. One is plenty, zero is fine.",
+    "",
+    "Good, because each is one deed and lots of people have done it:",
+    "Never have I ever given proxy attendance for a friend",
+    "Never have I ever lied to my mom about where I was",
+    "Never have I ever stalked an ex on Instagram",
+    "Never have I ever cried in a hostel bathroom",
+    "Never have I ever kept the change from a grocery run",
+    "",
+    "Bad, and why:",
+    "'Never have I ever let an auntie catch me holding hands in a mall and then fled'",
+    "  - three things bolted together, nobody has done exactly this",
+    "'Never have I ever used a fake ID to check into a budget hotel after a party'",
+    "  - too many qualifiers, too rare",
+    "'Never have I ever pretended to understand a teacher's joke to avoid looking stupid'",
+    "  - trailing motive clause, and boring",
+    "",
+    "Indian texture comes from the deed itself, not from decorating it. If a line",
+    "reads Indian without naming anything Indian, that is better.",
+    "",
+    "Avoid American tropes (prom, frat, spring break). Avoid lines everyone",
+    "answers yes to with a shrug ('told a lie', 'been late').",
+    "",
+    "Hard limits: nothing sexual involving minors, nothing non-consensual, no",
+    "serious crime, no hard drugs, nothing graphic or anatomical.",
+    "",
+    "Write about your own past only. Never address the other player.",
+    'Never use "you", "your", "yours", "we", "us", "our". Only "I" and "my".',
+    "",
+    "Output: plain ASCII, Roman script only, no emoji, no curly quotes.",
+  `Exactly ${STATEMENTS_PER_BATCH} lines, each starting "Never have I ever ".`,
+    "No numbering, no bullets, no preamble, no sign-off.",
   ].join("\n");
 
   const list = Array.isArray(interests) ? interests.filter(Boolean) : [];
