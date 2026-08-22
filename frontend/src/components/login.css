@@ -218,3 +218,9 @@ button[type="submit"],
   justify-content: center;
   min-height: 44px;
 }
+
+.login-error {
+  margin-top: 12px;
+  color: #d43f24;
+  font-size: 0.9rem;
+}
