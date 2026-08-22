@@ -17,6 +17,8 @@ const { registerPairChat } = require("./pairchat.js");
 const UserModel = require("./models/User.js");
 const { resolveGlobalSender } = require("./socketIdentity.js");
 const { buildPartnerPayload } = require("./partnerPayload.js");
+const { buildMatchAttrs } = require("./matchAttrs.js");
+const { sanitizeFilters, canPairByFilters } = require("./matchFilters.js");
 
 // The profile a partner is allowed to see. Explicitly built field by field
 // rather than spread from the document: a spread here is how name, email and
@@ -116,6 +118,12 @@ let chatPairs = {};
 let rtcReadyUsers = new Set();
 let authenticatedUsers = new Map();
 
+// What each waiting socket asked for, and the two profile fields matching is
+// allowed to know about them. Both are keyed by socket id and cleared on
+// disconnect. Filters are a session choice and are never persisted.
+const waitingFilters = new Map();
+const waitingAttrs = new Map();
+
 // FIX 3: Track users that recently clicked "next" so they can't be immediately
 // re-paired with the same person. The set is keyed by socketId and cleared
 // after a short cooldown window.
@@ -148,7 +156,7 @@ io.on("connection", (socket) => {
   registerGlobalChat(io, socket);
   registerPairChat(io, socket, chatPairs);
 
-  socket.on("findChat", (collegeEmail, withVideo = false) => {
+  socket.on("findChat", async (collegeEmail, withVideo = false, filters) => {
     const userEmail = socket.userEmail || collegeEmail;
 
     if (chatPairs[socket.id]) {
@@ -158,6 +166,16 @@ io.on("connection", (socket) => {
       }
       cleanupChatPair(socket.id);
     }
+
+    waitingFilters.set(socket.id, sanitizeFilters(filters));
+
+    // One read per queue entry. Failure is non-fatal: empty attributes are
+    // wildcards, so a database hiccup widens the match rather than blocking it.
+    const profile = await visibleProfileFor(socket).catch(() => null);
+    waitingAttrs.set(socket.id, buildMatchAttrs(profile));
+
+    // The socket can disconnect during the await.
+    if (!io.sockets.sockets.get(socket.id)) return;
 
     waitingUsers = waitingUsers.filter((id) => id !== socket.id);
     waitingUsers.push(socket.id);
@@ -280,6 +298,8 @@ io.on("connection", (socket) => {
     videoEnabledUsers.delete(socket.id);
     rtcReadyUsers.delete(socket.id);
     nextCooldownUsers.delete(socket.id);
+    waitingFilters.delete(socket.id);
+    waitingAttrs.delete(socket.id);
 
     if (chatPairs[socket.id]) {
       const partnerId = chatPairs[socket.id].partner;
@@ -320,6 +340,16 @@ function cleanupChatPair(socketId) {
 // checkbox was removed, so every user landed in the video bucket and
 // matchRemainingUsers never ran. Two near-identical loops would mean writing
 // every future pairing rule twice and keeping the copies in step.
+// Bridges the socket-keyed maps to the pure predicate. A socket with no entry
+// yet — its profile read has not resolved — is treated as unfiltered and
+// attribute-less, which makes it matchable rather than stuck.
+function filtersAllowPair(id1, id2) {
+  return canPairByFilters(
+    { filter: waitingFilters.get(id1), attrs: waitingAttrs.get(id1) },
+    { filter: waitingFilters.get(id2), attrs: waitingAttrs.get(id2) }
+  );
+}
+
 function matchUsers() {
   let i = 0;
   while (i < waitingUsers.length - 1) {
@@ -329,6 +359,7 @@ function matchUsers() {
     for (let j = i + 1; j < waitingUsers.length; j++) {
       const user2 = waitingUsers[j];
       if (!canPair(user1, user2)) continue;
+      if (!filtersAllowPair(user1, user2)) continue;
 
       waitingUsers.splice(j, 1);
       waitingUsers.splice(i, 1);
