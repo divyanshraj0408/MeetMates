@@ -37,10 +37,16 @@ function App() {
   const [typingNames, setTypingNames] = useState([]);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [partnerProfile, setPartnerProfile] = useState(null);
+  const [searchWidened, setSearchWidened] = useState(null);
 
   // FIX: Track when the user intentionally ends the call so that the
   // partnerLeft handler doesn't auto-rejoin them into matchmaking.
   const userLeftIntentionally = useRef(false);
+
+  // Remember the filters from the most recent findChat so the automatic
+  // re-queue after a partner disconnect (below) can reuse them instead of
+  // silently reverting the user's gender/location choice to "no filter".
+  const lastFiltersRef = useRef(undefined);
 
   useEffect(() => {
     const checkTokenAndAutoLogin = async () => {
@@ -160,6 +166,7 @@ function App() {
     socket.on("pairTyping", ({ typing }) => setPartnerTyping(Boolean(typing)));
 
     socket.on("partnerProfile", (profile) => setPartnerProfile(profile));
+    socket.on("searchWidened", (what) => setSearchWidened(what));
 
     socket.on("globalIdentity", ({ uid }) => setMyUid(uid));
 
@@ -235,7 +242,8 @@ function App() {
         setTimeout(() => {
           handleStartChat(
             readStoredEmail(),
-            localStorage.getItem("withVideo") === "true"
+            localStorage.getItem("withVideo") === "true",
+            lastFiltersRef.current
           );
         }, 2000);
       }
@@ -258,6 +266,7 @@ function App() {
       socket.off("pairReaction");
       socket.off("pairTyping");
       socket.off("partnerProfile");
+      socket.off("searchWidened");
       socket.off("partnerLeft");
       socket.off("error");
       socket.off("globalIdentity");
@@ -269,7 +278,7 @@ function App() {
     };
   }, []);
 
-  const handleStartChat = async (email, withVideo) => {
+  const handleStartChat = async (email, withVideo, filters) => {
     storeEmail(email);
     localStorage.setItem("withVideo", withVideo);
 
@@ -297,9 +306,13 @@ function App() {
     if (!socket.connected) {
       socket.connect();
     }
-    socket.emit("findChat", email, withVideo);
+    setSearchWidened(null);
+    lastFiltersRef.current = filters;
+    socket.emit("findChat", email, withVideo, filters);
     setCurrentScreen("waiting");
   };
+
+  const handleWidenSearch = () => socket.emit("widenSearch");
 
   const handleSendMessage = (text) => {
     const trimmed = text.trim();
@@ -450,10 +463,11 @@ function App() {
       case "start":
         return (
           <StartPage
-            onStartChat={() =>
+            onStartChat={(filters) =>
               handleStartChat(
                 readStoredEmail(),
-                localStorage.getItem("withVideo") === "true"
+                localStorage.getItem("withVideo") === "true",
+                filters
               )
             }
             goBack={() => setCurrentScreen("home")}
@@ -472,16 +486,20 @@ function App() {
       case "waiting":
         return (
           <StartPage
-            onStartChat={() =>
+            onStartChat={(filters) =>
               handleStartChat(
                 readStoredEmail(),
-                localStorage.getItem("withVideo") === "true"
+                localStorage.getItem("withVideo") === "true",
+                filters
               )
             }
             goBack={() => setCurrentScreen("home")}
             logout={logout}
             onlineUserCount={onlineUserCount}
             loading={true}
+            onWidenSearch={handleWidenSearch}
+            searchWidened={searchWidened}
+            onLogout={logout}
             globalMessages={globalMessages}
             myUid={myUid}
             typingNames={typingNames}
