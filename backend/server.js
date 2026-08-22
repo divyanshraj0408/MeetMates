@@ -174,8 +174,13 @@ io.on("connection", (socket) => {
     const profile = await visibleProfileFor(socket).catch(() => null);
     waitingAttrs.set(socket.id, buildMatchAttrs(profile));
 
-    // The socket can disconnect during the await.
+    // The socket can disconnect during the await, and a second findChat that
+    // started before this one can have paired it in the meantime. Before the
+    // handler was async neither could happen between the check above and the
+    // push below; now both can. Re-queueing an already-paired socket lets
+    // matchUsers pair it twice, which silently orphans the first partner.
     if (!io.sockets.sockets.get(socket.id)) return;
+    if (chatPairs[socket.id]) return;
 
     waitingUsers = waitingUsers.filter((id) => id !== socket.id);
     waitingUsers.push(socket.id);
