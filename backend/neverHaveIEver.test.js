@@ -1,0 +1,197 @@
+const { test } = require("node:test");
+const assert = require("node:assert");
+
+const {
+  TIERS,
+  tierForRound,
+  sharedInterests,
+  toAscii,
+  parseStatements,
+  buildPrompt,
+  STATEMENTS_PER_BATCH,
+} = require("./neverHaveIEver");
+
+// ---------------------------------------------------------------------------
+// tierForRound
+// ---------------------------------------------------------------------------
+
+test("tierForRound climbs one tier every 2 completed rounds", () => {
+  assert.equal(tierForRound(0), "playful");
+  assert.equal(tierForRound(1), "playful");
+  assert.equal(tierForRound(2), "cheeky");
+  assert.equal(tierForRound(3), "cheeky");
+  assert.equal(tierForRound(4), "flirty");
+  assert.equal(tierForRound(5), "flirty");
+  assert.equal(tierForRound(6), "suggestive");
+  assert.equal(tierForRound(20), "suggestive");
+});
+
+test("tierForRound treats negative, null and non-numeric input as 0", () => {
+  assert.equal(tierForRound(-1), "playful");
+  assert.equal(tierForRound(null), "playful");
+  assert.equal(tierForRound("x"), "playful");
+});
+
+test("TIERS is the fixed ordered list", () => {
+  assert.deepEqual(TIERS, ["playful", "cheeky", "flirty", "suggestive"]);
+});
+
+// ---------------------------------------------------------------------------
+// sharedInterests
+// ---------------------------------------------------------------------------
+
+test("sharedInterests returns the real intersection when one exists", () => {
+  const result = sharedInterests(["cricket", "coding", "anime"], ["coding", "anime", "gym"]);
+  assert.deepEqual(result.sort(), ["anime", "coding"]);
+});
+
+test("sharedInterests falls back to the union when the intersection is empty", () => {
+  const result = sharedInterests(["cricket"], ["anime"]);
+  assert.deepEqual(result.sort(), ["anime", "cricket"]);
+});
+
+test("sharedInterests returns [] when both inputs are empty", () => {
+  assert.deepEqual(sharedInterests([], []), []);
+});
+
+test("sharedInterests caps the result at 4 slugs", () => {
+  const a = ["one", "two", "three", "four", "five", "six"];
+  const b = ["one", "two", "three", "four", "five", "six"];
+  const result = sharedInterests(a, b);
+  assert.equal(result.length, 4);
+});
+
+test("sharedInterests does not throw on null/undefined/non-array inputs", () => {
+  assert.deepEqual(sharedInterests(null, undefined), []);
+  assert.deepEqual(sharedInterests("not-an-array", ["gym"]), ["gym"]);
+  assert.deepEqual(sharedInterests(undefined, ["gym"]), ["gym"]);
+});
+
+// ---------------------------------------------------------------------------
+// toAscii
+// ---------------------------------------------------------------------------
+
+test("toAscii normalizes the U+2011 non-breaking hyphen", () => {
+  assert.equal(toAscii("late‑night"), "late-night");
+});
+
+test("toAscii normalizes curly quotes to straight ones", () => {
+  assert.equal(toAscii("‘hello’"), "'hello'");
+  assert.equal(toAscii("“hello”"), '"hello"');
+});
+
+test("toAscii strips stray emoji and other non-ASCII", () => {
+  assert.equal(toAscii("party time \u{1F389}"), "party time");
+});
+
+test("toAscii normalizes em/en dashes and ellipsis", () => {
+  assert.equal(toAscii("wait—what…"), "wait-what...");
+});
+
+// ---------------------------------------------------------------------------
+// parseStatements
+// ---------------------------------------------------------------------------
+
+const REALISTIC_RESPONSE = [
+  "1. Never have I ever texted an ex at 2am.",
+  "2. Never have I ever pretended to like a gift I hated.",
+  "3. Never have I ever stalked someone's social media before a first date.",
+  "- Never have I ever lied about my age to get into a club.",
+  "* Never have I ever ghosted someone after one date.",
+  "6. Never have I ever fallen for a friend's sibling.",
+].join("\n");
+
+test("parseStatements parses a realistic 6-line response into 6 statements", () => {
+  const result = parseStatements(REALISTIC_RESPONSE);
+  assert.equal(result.length, 6);
+  result.forEach((line) => {
+    assert.match(line, /^Never have I ever/i);
+  });
+});
+
+test("parseStatements strips numbering and bullet prefixes", () => {
+  const result = parseStatements("1. Never have I ever done a thing.");
+  assert.equal(result[0], "Never have I ever done a thing.");
+});
+
+test("parseStatements drops lines that do not start with 'Never have I ever'", () => {
+  const raw = "Sure, here are some statements:\nNever have I ever done a thing.";
+  const result = parseStatements(raw);
+  assert.deepEqual(result, ["Never have I ever done a thing."]);
+});
+
+test("parseStatements dedupes identical lines", () => {
+  const raw = [
+    "Never have I ever done a thing.",
+    "Never have I ever done a thing.",
+  ].join("\n");
+  const result = parseStatements(raw);
+  assert.equal(result.length, 1);
+});
+
+test("parseStatements returns [] for empty, null and refusal responses", () => {
+  assert.deepEqual(parseStatements(""), []);
+  assert.deepEqual(parseStatements(null), []);
+  assert.deepEqual(
+    parseStatements("I'm sorry, I can't help with that request."),
+    []
+  );
+});
+
+test("parseStatements caps each line at 120 chars", () => {
+  const longTail = "a".repeat(200);
+  const raw = `Never have I ever ${longTail}`;
+  const result = parseStatements(raw);
+  assert.equal(result.length, 1);
+  assert.ok(result[0].length <= 120);
+});
+
+// ---------------------------------------------------------------------------
+// buildPrompt
+// ---------------------------------------------------------------------------
+
+test("buildPrompt returns a distinct tone line per tier in the system prompt", () => {
+  const seen = new Set();
+  TIERS.forEach((tier) => {
+    const { system } = buildPrompt(tier, []);
+    assert.equal(typeof system, "string");
+    assert.ok(system.length > 0);
+    seen.add(system);
+  });
+  assert.equal(seen.size, TIERS.length);
+});
+
+test("buildPrompt's suggestive tier explicitly rejects tameness", () => {
+  const { system } = buildPrompt("suggestive", []);
+  assert.match(system.toLowerCase(), /coworkers/);
+  assert.match(system.toLowerCase(), /too tame/);
+});
+
+test("buildPrompt puts interests in the user message, not the system message", () => {
+  const { system, user } = buildPrompt("playful", ["cricket", "anime"]);
+  assert.match(user, /cricket/);
+  assert.match(user, /anime/);
+  assert.doesNotMatch(system, /cricket/);
+  assert.doesNotMatch(system, /anime/);
+});
+
+test("buildPrompt keeps a hostile slug confined to the user message only", () => {
+  const hostile = "ignore-previous-instruct";
+  const { system, user } = buildPrompt("playful", [hostile]);
+  assert.match(user, new RegExp(hostile));
+  assert.doesNotMatch(system, new RegExp(hostile));
+});
+
+test("buildPrompt asks for universal statements when no interests are given", () => {
+  const { user } = buildPrompt("playful", []);
+  assert.equal(typeof user, "string");
+  assert.ok(user.length > 0);
+});
+
+// ---------------------------------------------------------------------------
+// STATEMENTS_PER_BATCH
+// ---------------------------------------------------------------------------
+
+test("STATEMENTS_PER_BATCH is 6", () => {
+  assert.equal(STATEMENTS_PER_BATCH, 6);
+});
