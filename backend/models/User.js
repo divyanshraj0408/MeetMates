@@ -37,6 +37,27 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // The 18+ gate. A checkbox, not a date of birth: the gate does the enforcing,
+  // so the exact number is never needed, and data not held cannot leak.
+  isAdultConfirmed: {
+    type: Boolean,
+    default: false,
+  },
+  adultConfirmedAt: {
+    type: Date,
+  },
+
+  // Shown to the person you are matched with. Deliberately contains nothing
+  // that could be used to find you afterwards — see the design spec.
+  profile: {
+    ageBand: { type: String, default: "" },
+    country: { type: String, trim: true, maxlength: 56, default: "" },
+    region: { type: String, trim: true, maxlength: 85, default: "" },
+    gender: { type: String, default: "" },
+    interests: { type: [String], default: [] },
+    bio: { type: String, trim: true, maxlength: 200, default: "" },
+    updatedAt: { type: Date },
+  },
   isVerified: {
     type: Boolean,
     default: false
