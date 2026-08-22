@@ -24,6 +24,12 @@ const {
   LOCATION_WORLDWIDE,
   NO_GENDER_FILTER,
 } = require("./matchFilters.js");
+const {
+  TIERS,
+  tierForRound,
+  sharedInterests,
+  generateStatements,
+} = require("./neverHaveIEver.js");
 
 // The profile a partner is allowed to see. Explicitly built field by field
 // rather than spread from the document: a spread here is how name, email and
@@ -372,6 +378,226 @@ io.on("connection", (socket) => {
       const partnerId = chatPairs[socket.id].partner;
       io.to(partnerId).emit("ice-candidate", { candidate: data.candidate, from: socket.id });
     }
+  });
+
+  // "Never Have I Ever" game state. Deliberately kept on chatPairs[id].game
+  // rather than a module-level Map: it lives and dies with the pair, so
+  // cleanupChatPair (which deletes both pair entries wholesale) tears the
+  // game down for free. A second Map here is exactly the shape of the last
+  // two leaks this project shipped.
+  //
+  // Both sockets' pair entries hold the SAME game object by reference, so
+  // either side reads/writes one shared state. That also means "does a game
+  // exist" and "is this the game I started" can both be answered by identity
+  // (chatPairs[id].game === someReference) without a separate id or flag.
+  socket.on("gameStart", async () => {
+    const pair = chatPairs[socket.id];
+    if (!pair || pair.game) return;
+
+    const partnerId = pair.partner;
+    const partnerPair = chatPairs[partnerId];
+    if (!partnerPair || partnerPair.game) return;
+
+    const partnerSocket = io.sockets.sockets.get(partnerId);
+    if (!partnerSocket) return;
+
+    // Reserve the slot on both entries synchronously, before any await, so a
+    // near-simultaneous gameStart from the other side (either player may
+    // start) can't also pass the checks above and race to build a second,
+    // competing game. Every step after this mutates the same object in
+    // place rather than replacing it - that's what makes "is chatPairs[id]
+    // .game still this object" a meaningful check after each await below.
+    const game = {
+      statements: [],
+      current: null,
+      answers: {},
+      completedRounds: 0,
+      tier: TIERS[0],
+      interests: [],
+      nextBatch: null,
+      prefetching: false,
+    };
+    pair.game = game;
+    partnerPair.game = game;
+
+    const [selfProfile, partnerProfile] = await Promise.all([
+      visibleProfileFor(socket),
+      visibleProfileFor(partnerSocket),
+    ]);
+
+    // The pair can vanish, or get replaced by a brand new one, while those
+    // profile reads are in flight - disconnect, "next", partner leaving.
+    // Re-check the live entry and that it's still this exact game before
+    // touching anything else.
+    let current = chatPairs[socket.id];
+    if (!current || current.game !== game) return;
+
+    game.interests = sharedInterests(
+      (selfProfile && selfProfile.interests) || [],
+      (partnerProfile && partnerProfile.interests) || []
+    );
+
+    const statements = await generateStatements(game.tier, game.interests);
+
+    // Second await, second window for the pair to disappear underneath us.
+    current = chatPairs[socket.id];
+    if (!current || current.game !== game) return;
+
+    if (statements.length === 0) {
+      io.to(current.room).emit("gameOver", { reason: "no-questions" });
+      // Clear the reservation so a retry via gameStart isn't blocked forever
+      // by a game that never got off the ground.
+      delete current.game;
+      const stillPartnerPair = chatPairs[current.partner];
+      if (stillPartnerPair) delete stillPartnerPair.game;
+      return;
+    }
+
+    game.statements = statements;
+    game.current = game.statements.shift();
+
+    io.to(current.room).emit("gameStatement", {
+      statement: game.current,
+      tier: game.tier,
+      completedRounds: game.completedRounds,
+    });
+  });
+
+  socket.on("gameAnswer", (payload) => {
+    const pair = chatPairs[socket.id];
+    if (!pair || !pair.game || !pair.game.current) return;
+
+    const answer = payload && payload.answer;
+    if (answer !== "have" && answer !== "never") return;
+
+    const game = pair.game;
+    if (Object.prototype.hasOwnProperty.call(game.answers, socket.id)) return; // first answer wins
+
+    game.answers[socket.id] = answer;
+
+    const partnerId = pair.partner;
+    if (partnerId) io.to(partnerId).emit("gameAnswered", {});
+
+    if (partnerId && Object.prototype.hasOwnProperty.call(game.answers, partnerId)) {
+      game.completedRounds += 1;
+
+      // Computed per socket rather than sent as one shared payload, so
+      // neither side's message ever needs to carry the other's socket id.
+      socket.emit("gameReveal", {
+        answers: { you: game.answers[socket.id], them: game.answers[partnerId] },
+      });
+      io.to(partnerId).emit("gameReveal", {
+        answers: { you: game.answers[partnerId], them: game.answers[socket.id] },
+      });
+    }
+  });
+
+  socket.on("gameNext", async () => {
+    const pair = chatPairs[socket.id];
+    if (!pair || !pair.game) return;
+    const game = pair.game;
+    const partnerId = pair.partner;
+    if (!partnerId) return;
+
+    // Both players must have answered the statement on screen - otherwise
+    // one person could keep clicking through the deck alone.
+    if (
+      !Object.prototype.hasOwnProperty.call(game.answers, socket.id) ||
+      !Object.prototype.hasOwnProperty.call(game.answers, partnerId)
+    ) {
+      return;
+    }
+
+    game.answers = {};
+
+    const nextTier = tierForRound(game.completedRounds);
+    if (nextTier !== game.tier) {
+      game.tier = nextTier;
+      if (game.nextBatch) {
+        game.statements = game.nextBatch;
+        game.nextBatch = null;
+      } else {
+        const fresh = await generateStatements(game.tier, game.interests);
+
+        // The pair, or this exact game, can be gone by the time Groq answers
+        // - re-check identity before mutating or emitting into it.
+        const afterGenerate = chatPairs[socket.id];
+        if (!afterGenerate || afterGenerate.game !== game) return;
+
+        if (fresh.length === 0) {
+          io.to(afterGenerate.room).emit("gameOver", { reason: "no-questions" });
+          delete afterGenerate.game;
+          const partnerPair = chatPairs[afterGenerate.partner];
+          if (partnerPair) delete partnerPair.game;
+          return;
+        }
+        game.statements = fresh;
+      }
+    }
+
+    // No await happens above in the common case (tier unchanged, or a
+    // pre-fetched batch was ready), but re-check anyway rather than branch on
+    // which path was taken - it costs nothing when nothing changed underneath.
+    const current = chatPairs[socket.id];
+    if (!current || current.game !== game) return;
+
+    game.current = game.statements.shift() || null;
+
+    // Predict whether the round after this one crosses into a new tier and,
+    // if so, get ahead of it now instead of making a future tier swap block
+    // on Groq. Deliberately not awaited - hiding that latency behind the
+    // round the players are looking at right now is the entire point.
+    // Guarded by "prefetching" so a low remaining count doesn't fire this on
+    // every single gameNext while the batch is still in flight.
+    const upcomingTier = tierForRound(game.completedRounds + 1);
+    if (
+      game.statements.length < 2 &&
+      upcomingTier !== game.tier &&
+      !game.nextBatch &&
+      !game.prefetching
+    ) {
+      game.prefetching = true;
+      generateStatements(upcomingTier, game.interests)
+        .then((batch) => {
+          game.prefetching = false;
+          // Only store it if this exact game is still the live one - a torn
+          // down pair has nothing left to hand the batch to.
+          const stillCurrent = chatPairs[socket.id];
+          if (stillCurrent && stillCurrent.game === game) {
+            game.nextBatch = batch;
+          }
+        })
+        .catch(() => {
+          game.prefetching = false;
+        });
+    }
+
+    if (!game.current && !game.nextBatch) {
+      io.to(current.room).emit("gameOver", { reason: "no-questions" });
+      delete current.game;
+      const partnerPair = chatPairs[current.partner];
+      if (partnerPair) delete partnerPair.game;
+      return;
+    }
+
+    io.to(current.room).emit("gameStatement", {
+      statement: game.current,
+      tier: game.tier,
+      completedRounds: game.completedRounds,
+    });
+  });
+
+  socket.on("gameEnd", () => {
+    const pair = chatPairs[socket.id];
+    if (!pair || !pair.game) return;
+
+    const room = pair.room;
+    const partnerPair = chatPairs[pair.partner];
+
+    delete pair.game;
+    if (partnerPair) delete partnerPair.game;
+
+    io.to(room).emit("gameOver", { reason: "ended" });
   });
 
   socket.on("disconnect", () => {
