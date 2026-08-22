@@ -275,3 +275,31 @@
     margin-bottom: 0;
   }
 }
+
+/* Match filters. `.filter` is an existing unprefixed class shared with the old
+   decorative chips; everything new here is prefixed. */
+.mf-chip {
+  display: flex;
+  align-items: center;
+  border: none;
+  color: inherit;
+  font-family: "Rethink Sans", sans-serif;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.09s;
+}
+
+.mf-chip:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.mf-chip-on {
+  background: #0099ff;
+  color: #fff;
+}
+
+.mf-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}

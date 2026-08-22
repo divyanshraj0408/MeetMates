@@ -1,7 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
+import axios from "axios";
 import ChatPanel from "./chat/ChatPanel";
 import "./startpage.css";
 import "./profile/profile.css";
+
+// Kept in step with backend/matchFilters.js by hand. Three strings is below the
+// bar that earned interests.js and countries.js a mirrored file plus a parity
+// test; the server sanitizes anything it does not recognise anyway.
+const GENDER_CYCLE = ["", "man", "woman"];
+const GENDER_LABEL = { "": "Anybody", man: "Men", woman: "Women" };
 
 function StartPage({
   onStartChat,
@@ -19,6 +26,39 @@ function StartPage({
   const videoRef = useRef(null);
   // Mobile only: the right box shows one pane at a time. Desktop shows both.
   const [mobileTab, setMobileTab] = useState("chat");
+
+  const [genderFilter, setGenderFilter] = useState(
+    () => localStorage.getItem("filterGender") || ""
+  );
+  const [locationFilter, setLocationFilter] = useState(
+    () => localStorage.getItem("filterLocation") || "worldwide"
+  );
+  // "My country" needs a country to compare against. EditProfile fetches its own
+  // profile rather than App holding it, so this follows the same pattern.
+  const [myCountry, setMyCountry] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    axios
+      .get(`${import.meta.env.VITE_BACKEND_URL}/api/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setMyCountry(res.data.profile?.countryCode || ""))
+      .catch(() => setMyCountry(""));
+  }, []);
+
+  const cycleGender = () => {
+    const next = GENDER_CYCLE[(GENDER_CYCLE.indexOf(genderFilter) + 1) % GENDER_CYCLE.length];
+    setGenderFilter(next);
+    localStorage.setItem("filterGender", next);
+  };
+
+  const toggleLocation = () => {
+    const next = locationFilter === "country" ? "worldwide" : "country";
+    setLocationFilter(next);
+    localStorage.setItem("filterLocation", next);
+  };
 
   useEffect(() => {
     const getMedia = async () => {
@@ -74,7 +114,13 @@ function StartPage({
           </p>
 
           <div className="filters">
-            <div className="filter" style={{ display: "flex", alignItems: "center" }}>
+            <button
+              type="button"
+              className={`filter mf-chip ${genderFilter ? "mf-chip-on" : ""}`}
+              onClick={cycleGender}
+              disabled={loading}
+              aria-label={`match with ${GENDER_LABEL[genderFilter]}`}
+            >
               <img
                 src="https://em-content.zobj.net/source/apple/419/man_1f468.png"
                 alt=""
@@ -84,22 +130,36 @@ function StartPage({
                 src="https://em-content.zobj.net/source/apple/419/woman-red-hair_1f469-200d-1f9b0.png"
                 alt=""
                 style={{ width: "20px", marginRight: "8px" }}
-              />{" "}
-              Anybody
-            </div>
-            <div className="filter" style={{ display: "flex", alignItems: "center" }}>
+              />
+              {GENDER_LABEL[genderFilter]}
+            </button>
+
+            <button
+              type="button"
+              className={`filter mf-chip ${locationFilter === "country" ? "mf-chip-on" : ""}`}
+              onClick={toggleLocation}
+              disabled={loading || !myCountry}
+              title={myCountry ? "" : "add your country to your profile first"}
+            >
               <img
                 src="https://em-content.zobj.net/source/apple/419/globe-showing-asia-australia_1f30f.png"
                 alt=""
                 style={{ width: "20px", marginRight: "8px" }}
               />
-              <p style={{ margin: 0 }}>Worldwide</p>
-            </div>
+              {locationFilter === "country" && myCountry ? "My country" : "Worldwide"}
+            </button>
           </div>
 
           <button
             className="vibe-btn"
-            onClick={onStartChat}
+            onClick={() =>
+              onStartChat({
+                gender: genderFilter,
+                // A country filter with no country of your own does nothing,
+                // so do not send one.
+                location: myCountry ? locationFilter : "worldwide",
+              })
+            }
             disabled={loading}
             style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
           >
