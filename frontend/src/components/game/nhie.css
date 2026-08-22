@@ -1,0 +1,240 @@
+/* Every selector is nhie- prefixed. Unscoped component class names have
+   leaked between pages in this app before and cost days to unpick. */
+
+/* Sits over the bottom of .video-box.remote-video, which is already
+   position: relative. ProfilePanel owns the top-right corner of that same
+   box (.pf-panel-incall), so this only ever claims the bottom strip — and
+   stops short of the "Pass >" button pinned at bottom:10px/right:10px. */
+.nhie-card {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 54px;
+  z-index: 6;
+  max-height: 46%;
+  overflow-y: auto;
+
+  background: rgba(255, 250, 255, 0.88);
+  border: 3px solid #0d0d0d;
+  border-radius: 16px;
+  box-shadow: 5px 5px 0 #0d0d0d;
+  padding: 12px 14px 14px;
+
+  /* Own colour explicitly: this card is its own surface sitting over live
+     video, not a child of the page background, so it must not inherit
+     whatever text colour happens to be sitting behind it. */
+  color: #0d0d0d;
+  font-family: "Rethink Sans", sans-serif;
+}
+
+.nhie-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.nhie-tier-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.nhie-tier-dot {
+  width: 9px;
+  height: 9px;
+  border: 2px solid #0d0d0d;
+  border-radius: 50%;
+  background: #fff;
+  flex: 0 0 auto;
+}
+
+.nhie-tier-dot-on {
+  background: #ff5ca2;
+}
+
+.nhie-tier-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  opacity: 0.8;
+}
+
+.nhie-close {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border: 2px solid #0d0d0d;
+  border-radius: 50%;
+  background: #fff;
+  color: #0d0d0d;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.nhie-close:active {
+  transform: translate(1px, 1px);
+}
+
+.nhie-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0 6px;
+}
+
+.nhie-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(13, 13, 13, 0.15);
+  border-top-color: #0d0d0d;
+  border-radius: 50%;
+  animation: nhie-spin 0.8s linear infinite;
+}
+
+@keyframes nhie-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.nhie-loading-text {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.nhie-statement {
+  margin: 0 0 12px;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.nhie-choices {
+  display: flex;
+  gap: 10px;
+}
+
+.nhie-choice {
+  flex: 1;
+  min-height: 46px;
+  border: 3px solid #0d0d0d;
+  border-radius: 14px;
+  background: #fff;
+  color: #0d0d0d;
+  font-family: "Rethink Sans", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #0d0d0d;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+.nhie-choice:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #0d0d0d;
+}
+
+.nhie-choice:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.nhie-choice-have.nhie-choice-picked {
+  background: #0099ff;
+  color: #fff;
+}
+
+.nhie-choice-never.nhie-choice-picked {
+  background: #ff5ca2;
+  color: #fff;
+}
+
+.nhie-hint {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  opacity: 0.75;
+}
+
+.nhie-reveal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nhie-reveal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nhie-reveal-who {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  width: 42px;
+  flex: 0 0 auto;
+  opacity: 0.75;
+}
+
+.nhie-reveal-pill {
+  border: 2px solid #0d0d0d;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.nhie-reveal-have {
+  background: #0099ff;
+  color: #fff;
+}
+
+.nhie-reveal-never {
+  background: #ffea00;
+  color: #0d0d0d;
+}
+
+.nhie-next {
+  margin-top: 4px;
+  align-self: flex-end;
+  background: #9b71ff;
+  color: #fff;
+  border: 3px solid #0d0d0d;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-family: "Rethink Sans", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #0d0d0d;
+}
+
+.nhie-next:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #0d0d0d;
+}
+
+/* Small phones: trim padding a touch further so the card reliably sits
+   under half the video height rather than close to it. */
+@media (max-width: 380px) {
+  .nhie-card {
+    padding: 10px 12px 12px;
+    max-height: 44%;
+  }
+
+  .nhie-statement {
+    font-size: 0.92rem;
+  }
+}

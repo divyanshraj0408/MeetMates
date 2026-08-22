@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import socket from "../Socket";
 import ChatPanel from "./chat/ChatPanel";
 import ProfilePanel from "./profile/ProfilePanel.jsx";
+import NeverHaveIEver from "./game/NeverHaveIEver.jsx";
+import { EMOJI_BASE } from "../interests.js";
 import { Video, VideoOff, Mic, MicOff, PhoneOff } from 'lucide-react';
 
 import "./videochat.css";
+import "./game/nhie.css";
 
 function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, onNext, partnerTyping, onReactPair, onTypingPair, partnerProfile }) {
   const localVideoRef = useRef(null);
@@ -18,6 +21,7 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [gameOpen, setGameOpen] = useState(false);
 
   // FIX 1: Track attempts with a ref instead of state — state changes trigger
   // the useEffect dependency, which was causing the ghost reconnect loop.
@@ -293,6 +297,11 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
     socket.emit("ready-to-connect");
   };
 
+  const startGame = () => {
+    setGameOpen(true);
+    socket.emit("gameStart");
+  };
+
   // Use a stable value derived from window size via CSS media query instead
   const iconSize = window.innerWidth < 600 ? 16 : 22;
  const handleEndCall = () => {
@@ -335,6 +344,9 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
             Pass {">"}
           </button>
           <ProfilePanel profile={partnerProfile} inCall />
+          {gameOpen && (
+            <NeverHaveIEver socket={socket} onClose={() => setGameOpen(false)} />
+          )}
         </div>
 
         <div>
@@ -365,6 +377,18 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
                 {isCameraOff
                   ? <VideoOff size={iconSize} strokeWidth={1.2} />
                   : <Video size={iconSize} strokeWidth={1.5} />}
+              </button>
+              <button
+                className="control-btn"
+                onClick={startGame}
+                style={{ padding: 0, width: "36px", height: "36px" }}
+                aria-label="never have i ever"
+              >
+                <img
+                  src={`${EMOJI_BASE}/sparkles_2728.png`}
+                  alt=""
+                  style={{ width: 20, height: 20 }}
+                />
               </button>
               <button className="control-btn hide-video-btn" onClick={endCall}>
                 <PhoneOff size={iconSize} strokeWidth={1.5} />
