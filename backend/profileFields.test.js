@@ -1,0 +1,94 @@
+const { test } = require("node:test");
+const assert = require("node:assert");
+const { sanitizeProfileInput, AGE_BANDS, GENDERS } = require("./profileFields");
+
+test("accepts a complete, valid profile", () => {
+  const r = sanitizeProfileInput({
+    ageBand: "22-25",
+    country: "India",
+    region: "Delhi",
+    gender: "man",
+    interests: ["cricket", "coding"],
+    bio: "3rd year, indie rock, terrible at FIFA",
+  });
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.profile.ageBand, "22-25");
+  assert.deepStrictEqual(r.profile.interests, ["cricket", "coding"]);
+});
+
+test("accepts an entirely empty profile — every field is optional", () => {
+  const r = sanitizeProfileInput({});
+  assert.strictEqual(r.ok, true);
+  assert.deepStrictEqual(r.profile.interests, []);
+});
+
+test("treats empty strings as cleared fields, so a user can un-say something", () => {
+  const r = sanitizeProfileInput({ gender: "", region: "", bio: "" });
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.profile.gender, "");
+  assert.strictEqual(r.profile.region, "");
+  assert.strictEqual(r.profile.bio, "");
+});
+
+test("rejects an unknown age band", () => {
+  const r = sanitizeProfileInput({ ageBand: "12-15" });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /age/i);
+});
+
+test("rejects an unknown gender", () => {
+  const r = sanitizeProfileInput({ gender: "attack helicopter" });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /gender/i);
+});
+
+test("rejects unknown interest slugs", () => {
+  const r = sanitizeProfileInput({ interests: ["cricket", "not-a-real-tag"] });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /interest/i);
+});
+
+test("rejects more than eight interests", () => {
+  const nine = [
+    "indie", "hip-hop", "classical", "pop", "metal",
+    "anime", "k-drama", "movies", "sitcoms",
+  ];
+  const r = sanitizeProfileInput({ interests: nine });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /8|eight/i);
+});
+
+test("collapses duplicate interests rather than rejecting them", () => {
+  const r = sanitizeProfileInput({ interests: ["cricket", "cricket", "coding"] });
+  assert.strictEqual(r.ok, true);
+  assert.deepStrictEqual(r.profile.interests, ["cricket", "coding"]);
+});
+
+test("rejects a bio over 200 characters", () => {
+  const r = sanitizeProfileInput({ bio: "a".repeat(201) });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /200/);
+});
+
+test("rejects a bio containing a contact handle, and says which kind", () => {
+  const r = sanitizeProfileInput({ bio: "hmu on ig: divyansh" });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /social handle/i);
+});
+
+test("trims whitespace from text fields", () => {
+  const r = sanitizeProfileInput({ country: "  India  ", bio: "  hello  " });
+  assert.strictEqual(r.profile.country, "India");
+  assert.strictEqual(r.profile.bio, "hello");
+});
+
+test("never returns a field the caller did not send", () => {
+  const r = sanitizeProfileInput({ bio: "hi" });
+  assert.strictEqual("name" in r.profile, false);
+  assert.strictEqual("email" in r.profile, false);
+});
+
+test("exposes the bands and genders the UI needs", () => {
+  assert.ok(AGE_BANDS.includes("18-21"));
+  assert.ok(GENDERS.includes("prefer not to say"));
+});
