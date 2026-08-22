@@ -1,10 +1,10 @@
-# Pingo 🎥 | College-Exclusive Video Chat  
+# Pingo 🎥 | Random Video Chat  
 
-### Pingo is a college-exclusive platform that allows students to connect via random video calls. By using their college email IDs for authentication, students can interact in a safe and verified environment, fostering new connections within the campus.  
+### Pingo is a platform for meeting new people over random video calls. Sign in with Google and you are matched with someone new, with a moderated public room alongside.  
 ---
 ## 🚀 Features  
 
-1. **College Email Authentication** – Ensures only students from the college can join.  
+1. **Google Sign-In** – One-tap authentication; no passwords are stored.  
 2. **Random Video Matching** – Connects users with a random peer for seamless conversations.  
 3. **Real-Time Video Streaming** – Powered by **WebRTC** for smooth peer-to-peer communication.  
 4. **Secure & Private** – Prevents unauthorized access and ensures data privacy.  
@@ -14,7 +14,7 @@
 ## 🧠 How It Works
 
 1. **Authentication**:  
-   Users sign in using Google OAuth restricted to college email domains. Their token is validated on the backend (`/api/verify-token`) before connecting to the Socket.IO server.
+   Users sign in with Google. The ID token is verified server-side against `GOOGLE_CLIENT_ID`, and the resulting JWT is validated on the backend (`/api/verify-token`) before connecting to the Socket.IO server.
 
 2. **Matching**:  
    Users can opt for a video or audio-only chat. When they click "Start Chat", a `findChat` event is emitted. The server then pairs them with another waiting user.
@@ -40,7 +40,7 @@
 - **Backend:** Node.js + Express  
 - **Database:** MongoDB (Mongoose ORM)  
 - **Real-Time Communication:** WebRTC + Socket.io  
-- **Authentication:** Google OAuth (Restricted to College Emails)  
+- **Authentication:** Google OAuth  
 
 ## 🔧 Installation & Setup  
 

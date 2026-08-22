@@ -84,7 +84,7 @@ function wordListHit(text) {
 // that decides what the room blocks — widen or narrow it here, nowhere else.
 // S4 is the judgement call: it blocks insults aimed at a person. Drop that
 // line if ordinary trash-talk should be allowed to pass.
-const MODERATION_POLICY = `You are a content moderation classifier for a college student chat room.
+const MODERATION_POLICY = `You are a content moderation classifier for a public chat room where strangers meet.
 Classify the USER MESSAGE against this policy.
 
 Unsafe categories:
