@@ -48,3 +48,17 @@ test("the frontend mirror has exactly the same slugs", () => {
     "frontend/src/interests.js has drifted from backend/interests.js"
   );
 });
+
+const { COUNTRY_CODES } = require("./countries");
+
+test("the frontend country mirror has exactly the same codes", () => {
+  const mirrorPath = path.join(__dirname, "..", "frontend", "src", "countries.js");
+  const source = fs.readFileSync(mirrorPath, "utf8");
+  const mirrored = [...source.matchAll(/code:\s*"([A-Z]{2})"/g)].map((m) => m[1]);
+
+  assert.deepStrictEqual(
+    mirrored.slice().sort(),
+    COUNTRY_CODES.slice().sort(),
+    "frontend/src/countries.js has drifted from backend/countries.js"
+  );
+});
