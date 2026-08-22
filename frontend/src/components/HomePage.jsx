@@ -40,7 +40,7 @@ const HomePage = ({ onGoToLogin, goBack, doBackDisplay, doLoginDisplay }) => {
               <button className="wild-btn" onClick={onGoToLogin}>
                 Let’s Go Wild!
               </button>
-              Made exclusive for ADGIPS
+              Meet someone new
 
             </div>
 

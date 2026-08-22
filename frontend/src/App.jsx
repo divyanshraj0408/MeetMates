@@ -7,6 +7,21 @@ import ChatRoom from "./components/ChatRoom";
 import socket from "./Socket";
 import "./App.css";
 
+// The key was renamed from collegeEmail when Pingo stopped being college-only.
+// Reading the old one keeps existing sessions signed in through the rename.
+const EMAIL_KEY = "userEmail";
+function readStoredEmail() {
+  return (
+    localStorage.getItem(EMAIL_KEY) ||
+    localStorage.getItem("collegeEmail") ||
+    ""
+  );
+}
+function storeEmail(email) {
+  localStorage.setItem(EMAIL_KEY, email);
+  localStorage.removeItem("collegeEmail");
+}
+
 function App() {
   const [currentScreen, setCurrentScreen] = useState("home");
   const [messages, setMessages] = useState([]);
@@ -27,7 +42,7 @@ function App() {
   useEffect(() => {
     const checkTokenAndAutoLogin = async () => {
       const token = localStorage.getItem("token");
-      const email = localStorage.getItem("collegeEmail");
+      const email = readStoredEmail();
       const withVideo = localStorage.getItem("withVideo") === "true";
 
       if (token && email) {
@@ -213,7 +228,7 @@ function App() {
       if (!userLeftIntentionally.current) {
         setTimeout(() => {
           handleStartChat(
-            localStorage.getItem("collegeEmail"),
+            readStoredEmail(),
             localStorage.getItem("withVideo") === "true"
           );
         }, 2000);
@@ -248,7 +263,7 @@ function App() {
   }, []);
 
   const handleStartChat = async (email, withVideo) => {
-    localStorage.setItem("collegeEmail", email);
+    storeEmail(email);
     localStorage.setItem("withVideo", withVideo);
 
     const token = localStorage.getItem("token");
@@ -322,7 +337,7 @@ function App() {
     const clientId =
       globalThis.crypto?.randomUUID?.() ??
       `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const email = localStorage.getItem("collegeEmail") || "";
+    const email = readStoredEmail();
 
     // Optimistic row. The server echoes clientId back, at which point this is
     // swapped for the canonical message and the status becomes "delivered".
@@ -395,7 +410,7 @@ function App() {
         return (
           <Login
             onStart={(email, withVideo) => {
-              localStorage.setItem("collegeEmail", email);
+              storeEmail(email);
               localStorage.setItem("withVideo", withVideo);
               // Connect the socket on fresh login so the global chat on the
               // start screen receives history and can send messages. Without
@@ -420,7 +435,7 @@ function App() {
           <StartPage
             onStartChat={() =>
               handleStartChat(
-                localStorage.getItem("collegeEmail"),
+                readStoredEmail(),
                 localStorage.getItem("withVideo") === "true"
               )
             }
@@ -441,7 +456,7 @@ function App() {
           <StartPage
             onStartChat={() =>
               handleStartChat(
-                localStorage.getItem("collegeEmail"),
+                readStoredEmail(),
                 localStorage.getItem("withVideo") === "true"
               )
             }
