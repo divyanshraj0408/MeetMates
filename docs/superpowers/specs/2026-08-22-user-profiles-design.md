@@ -144,6 +144,62 @@ obfuscated emails (`me at gmail dot com`).
 determined can read their handle aloud on camera and nothing in software stops
 that. The goal is that the default is unlinkable, not that it is enforced.
 
+## Design language
+
+Profile UI follows the system already in the app rather than inventing one. The
+`:root` tokens in `App.css` are largely vestigial — `--primary: #d43f24` and
+`--accent: #00ffcc` barely appear anywhere — so these are the colours actually
+in use:
+
+| Role | Value | Where it already lives |
+|------|-------|------------------------|
+| Yellow | `#ffea00` | navbar |
+| Blue | `#0099ff` | borders, own chat bubbles, focus rings |
+| Pink | `#ff5ca2`, `#ff3f80` | primary CTA, headings |
+| Purple | `#c2a8ff`, `#9b71ff` | secondary buttons |
+| Black | `#0d0d0d` | borders |
+| Darks | `#1c1c1e`, `#2b2b2b`, `#3c3c3c` | chat surfaces, filter chips |
+
+Type: **RightGrostek** for display (local `.otf`), **Rethink Sans** for body
+(Google Fonts). Both already loaded.
+
+The house idiom is playful and sticker-like: thick borders (3–5px), flat
+saturated fills, generous radii (8px on inputs, up to 32px on buttons), no
+gradients on components, no subtle greys doing the work a colour should do.
+Profile UI matches that — interest tags in particular should read as pickable
+stickers, not as form checkboxes.
+
+### Emoji
+
+Emoji are Apple-style PNGs from `em-content.zobj.net/source/apple/419/`, used as
+inline `<img>` at ~20px, matching the existing pattern in `StartingPage.jsx`.
+
+Already in use: 🤧 `sneezing-face_1f927`, 👨 `man_1f468`,
+👩‍🦰 `woman-red-hair_1f469-200d-1f9b0`, 🌏 `globe-showing-asia-australia_1f30f`,
+⚡ `high-voltage_26a1`.
+
+Reused here: 🌏 for country and region, ⚡ on the save action (matching "Lets
+Vibe"), 👨 and 👩‍🦰 on the gender options.
+
+Additional, one per interest group plus three fields — all verified to resolve
+on the same CDN, so they need no manual import:
+
+| Emoji | Slug | Used for |
+|-------|------|----------|
+| 🎂 | `birthday-cake_1f382` | age band |
+| ✍️ | `writing-hand_270d-fe0f` | bio |
+| 🪪 | `identification-card_1faaa` | the in-call profile panel toggle |
+| 🎵 | `musical-note_1f3b5` | interests · music |
+| 🍿 | `popcorn_1f37f` | interests · screen |
+| 🎮 | `video-game_1f3ae` | interests · play |
+| 🎨 | `artist-palette_1f3a8` | interests · make |
+| 🧠 | `brain_1f9e0` | interests · mind |
+| ✈️ | `airplane_2708-fe0f` | interests · out |
+| ✨ | `sparkles_2728` | interests · other |
+
+One emoji per interest *group* rather than per tag — thirty-five emoji would be
+noise, seven reads as structure.
+
 ## Onboarding
 
 Shown after the first Google sign-in, before the lobby.
@@ -191,6 +247,9 @@ Manual:
 - A profile fills in, persists across reload, and each field clears individually.
 - The panel appears in a 1:1 call and never in the public room.
 - A bio containing a handle is rejected with an explanation.
+- Interest tags read as pickable stickers, not form checkboxes, and every emoji
+  loads — a 404 from the CDN shows as a broken image, which is worse than no
+  emoji at all, so each URL is checked once in the browser.
 - Name, email and profile photo appear nowhere in the call UI or in any socket
   payload — the same devtools check used for `senderEmail`.
 
@@ -220,3 +279,6 @@ Manual:
 - The bio is moderated and contact-handle checked; everything else is not.
 - Profiles display in 1:1 calls only.
 - Gender is stored and shown but not filterable.
+- Profile UI reuses the existing playful idiom — thick borders, flat saturated
+  fills, Apple emoji PNGs from the CDN already in use — rather than introducing
+  a new visual language.
