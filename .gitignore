@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.DS_Store
+
+# Local Claude Code state: a machine-specific permission allowlist and
+# scratchpad paths, not repo configuration.
+.claude
