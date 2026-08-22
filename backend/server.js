@@ -166,7 +166,13 @@ const waitingAttrs = new Map();
 
 // matchUsers only ever runs in response to an event, so a filtered user whose
 // criteria nobody in the queue meets waits until somebody else happens to act.
-// This timer is both the escape hatch and the retry loop.
+//
+// This timer is the escape hatch for that. It is not a general retry loop: it
+// fires once per queue entry, and for a user already searching worldwide it
+// widens nothing and stops. That is deliberate rather than an oversight —
+// gender never auto-relaxes, so a plain retry would rescan a queue it has
+// already rejected. What actually unsticks two incompatible waiters is a third
+// arrival, or either one's own relax firing.
 const relaxTimers = new Map();
 const RELAX_AFTER_MS = 15000;
 
