@@ -122,16 +122,20 @@ function EditProfile({ onDone, onBack }) {
 
           {error && <p className="pf-error">{error}</p>}
 
+          <button
+            type="button"
+            className="pf-save pf-save-end"
+            onClick={save}
+            disabled={saving}
+          >
+            {saving ? "locking in..." : "lock it in"}
+          </button>
+
           <button type="button" className="pf-back" onClick={onBack} disabled={saving}>
             back to the lobby
           </button>
         </div>
 
-        <div className="pf-bar">
-          <button type="button" className="pf-save" onClick={save} disabled={saving}>
-            {saving ? "locking in..." : "lock it in"}
-          </button>
-        </div>
       </div>
     </div>
   );
