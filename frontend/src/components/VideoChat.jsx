@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import socket from "../Socket";
 import ChatPanel from "./chat/ChatPanel";
+import ProfilePanel from "./profile/ProfilePanel.jsx";
 import { Video, VideoOff, Mic, MicOff, PhoneOff } from 'lucide-react';
 
 import "./videochat.css";
 
-function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, onNext, partnerTyping, onReactPair, onTypingPair }) {
+function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, onNext, partnerTyping, onReactPair, onTypingPair, partnerProfile }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
@@ -333,6 +334,7 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
           >
             Pass {">"}
           </button>
+          <ProfilePanel profile={partnerProfile} />
         </div>
 
         <div>

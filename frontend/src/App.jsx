@@ -36,6 +36,7 @@ function App() {
   const [myUid, setMyUid] = useState(null);
   const [typingNames, setTypingNames] = useState([]);
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const [partnerProfile, setPartnerProfile] = useState(null);
 
   // FIX: Track when the user intentionally ends the call so that the
   // partnerLeft handler doesn't auto-rejoin them into matchmaking.
@@ -113,6 +114,7 @@ function App() {
         },
       ]);
       setPartnerTyping(false);
+      setPartnerProfile(null);
       socket.emit("ready-to-connect");
     });
 
@@ -156,6 +158,8 @@ function App() {
     });
 
     socket.on("pairTyping", ({ typing }) => setPartnerTyping(Boolean(typing)));
+
+    socket.on("partnerProfile", (profile) => setPartnerProfile(profile));
 
     socket.on("globalIdentity", ({ uid }) => setMyUid(uid));
 
@@ -253,6 +257,7 @@ function App() {
       socket.off("pairMessageBlocked");
       socket.off("pairReaction");
       socket.off("pairTyping");
+      socket.off("partnerProfile");
       socket.off("partnerLeft");
       socket.off("error");
       socket.off("globalIdentity");
@@ -378,6 +383,7 @@ function App() {
   const handleNextChat = () => {
     setMessages([]);
     setPartnerTyping(false);
+    setPartnerProfile(null);
     setCurrentPartnerId(null);
     setIsVideoChat(false);
     socket.emit("next");
@@ -498,6 +504,7 @@ function App() {
             partnerTyping={partnerTyping}
             onReactPair={handleReactPair}
             onTypingPair={handleTypingPair}
+            partnerProfile={partnerProfile}
           />
         );
 

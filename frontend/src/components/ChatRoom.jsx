@@ -13,6 +13,7 @@ function ChatRoom({
   partnerTyping,
   onReactPair,
   onTypingPair,
+  partnerProfile,
 }) {
   return (
     <div className={`chat-container ${videoEnabled ? "with-video" : ""}`}>
@@ -36,6 +37,7 @@ function ChatRoom({
               partnerTyping={partnerTyping}
               onReactPair={onReactPair}
               onTypingPair={onTypingPair}
+              partnerProfile={partnerProfile}
             />
           </div>
         )}
