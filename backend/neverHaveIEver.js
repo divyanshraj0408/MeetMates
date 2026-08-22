@@ -182,9 +182,8 @@ async function generateStatements(tier, interests) {
     return [];
   }
 
-  const { system, user } = buildPrompt(tier, interests);
-
   try {
+    const { system, user } = buildPrompt(tier, interests);
     const res = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -218,7 +217,11 @@ async function generateStatements(tier, interests) {
 
     return statements;
   } catch (err) {
-    console.error("neverHaveIEver: Groq call failed, returning no statements:", err.message);
+    // err is normally an axios/Error instance, but this is the last line of
+    // defence for generateStatements' "never throws" contract, so read the
+    // message defensively rather than trust err.message to exist.
+    const message = err && err.message ? err.message : String(err);
+    console.error("neverHaveIEver: Groq call failed, returning no statements:", message);
     return [];
   }
 }
