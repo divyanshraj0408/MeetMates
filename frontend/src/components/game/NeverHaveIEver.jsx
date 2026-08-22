@@ -9,8 +9,13 @@ const TIERS = ["playful", "cheeky", "flirty", "suggestive"];
  * The "never have i ever" card. Purely a socket mirror + renderer: it owns no
  * game logic, just the five states the contract can put a round into.
  */
-function NeverHaveIEver({ socket, onClose }) {
-  const [loading, setLoading] = useState(true);
+function NeverHaveIEver({ socket, starting, onClose }) {
+  // Always mounted, so the listeners below are always registered. Mounting on
+  // the button click only worked for whoever pressed it: the partner's card
+  // did not exist yet, so gameStatement arrived with nobody listening and the
+  // round appeared on one screen. Mounting when the event arrives would race
+  // the same way — the card would mount after the event it needed to catch.
+  const [loading, setLoading] = useState(false);
   const [statement, setStatement] = useState(null); // { statement, tier, completedRounds }
   const [myAnswer, setMyAnswer] = useState(null); // "have" | "never" | null
   const [theyAnswered, setTheyAnswered] = useState(false);
@@ -34,6 +39,13 @@ function NeverHaveIEver({ socket, onClose }) {
     };
 
     const handleOver = () => {
+      // Back to idle rather than unmounted — the component has to stay alive
+      // and listening so the next round can arrive from either side.
+      setStatement(null);
+      setMyAnswer(null);
+      setTheyAnswered(false);
+      setReveal(null);
+      setLoading(false);
       onClose();
     };
 
@@ -72,8 +84,18 @@ function NeverHaveIEver({ socket, onClose }) {
 
   const close = () => {
     socket.emit("gameEnd");
+    setStatement(null);
+    setMyAnswer(null);
+    setTheyAnswered(false);
+    setReveal(null);
+    setLoading(false);
     onClose();
   };
+
+  // Idle: no round running and this user did not just press start. The
+  // partner sees nothing until a statement actually arrives.
+  const busy = loading || starting;
+  if (!statement && !busy) return null;
 
   const tierIndex = statement ? TIERS.indexOf(statement.tier) : -1;
 
@@ -99,14 +121,14 @@ function NeverHaveIEver({ socket, onClose }) {
         </button>
       </div>
 
-      {loading && (
+      {busy && !statement && (
         <div className="nhie-loading">
           <span className="nhie-spinner" aria-hidden="true" />
           <p className="nhie-loading-text">thinking of something...</p>
         </div>
       )}
 
-      {!loading && statement && (
+      {statement && (
         <div className="nhie-body">
           <p className="nhie-statement">{statement.statement}</p>
 

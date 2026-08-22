@@ -21,7 +21,11 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [gameOpen, setGameOpen] = useState(false);
+  // Only tracks whether THIS user pressed start, so their own card can show a
+  // spinner while the first batch generates. It does not gate mounting: the
+  // card is always mounted so it is always listening, otherwise the partner
+  // never registers a gameStatement handler and the round shows on one screen.
+  const [gameStarting, setGameStarting] = useState(false);
 
   // FIX 1: Track attempts with a ref instead of state — state changes trigger
   // the useEffect dependency, which was causing the ghost reconnect loop.
@@ -298,7 +302,7 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
   };
 
   const startGame = () => {
-    setGameOpen(true);
+    setGameStarting(true);
     socket.emit("gameStart");
   };
 
@@ -344,9 +348,11 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
             Pass {">"}
           </button>
           <ProfilePanel profile={partnerProfile} inCall />
-          {gameOpen && (
-            <NeverHaveIEver socket={socket} onClose={() => setGameOpen(false)} />
-          )}
+          <NeverHaveIEver
+            socket={socket}
+            starting={gameStarting}
+            onClose={() => setGameStarting(false)}
+          />
         </div>
 
         <div>
