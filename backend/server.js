@@ -18,7 +18,12 @@ const UserModel = require("./models/User.js");
 const { resolveGlobalSender } = require("./socketIdentity.js");
 const { buildPartnerPayload } = require("./partnerPayload.js");
 const { buildMatchAttrs } = require("./matchAttrs.js");
-const { sanitizeFilters, canPairByFilters } = require("./matchFilters.js");
+const {
+  sanitizeFilters,
+  canPairByFilters,
+  LOCATION_WORLDWIDE,
+  NO_GENDER_FILTER,
+} = require("./matchFilters.js");
 
 // The profile a partner is allowed to see. Explicitly built field by field
 // rather than spread from the document: a spread here is how name, email and
@@ -124,6 +129,12 @@ let authenticatedUsers = new Map();
 const waitingFilters = new Map();
 const waitingAttrs = new Map();
 
+// matchUsers only ever runs in response to an event, so a filtered user whose
+// criteria nobody in the queue meets waits until somebody else happens to act.
+// This timer is both the escape hatch and the retry loop.
+const relaxTimers = new Map();
+const RELAX_AFTER_MS = 15000;
+
 // FIX 3: Track users that recently clicked "next" so they can't be immediately
 // re-paired with the same person. The set is keyed by socketId and cleared
 // after a short cooldown window.
@@ -183,7 +194,7 @@ io.on("connection", (socket) => {
     if (chatPairs[socket.id]) return;
 
     waitingUsers = waitingUsers.filter((id) => id !== socket.id);
-    waitingUsers.push(socket.id);
+    enqueue(socket.id);
     withVideo
       ? videoEnabledUsers.add(socket.id)
       : videoEnabledUsers.delete(socket.id);
@@ -212,7 +223,7 @@ io.on("connection", (socket) => {
       nextCooldownUsers.add(socket.id);
       setTimeout(() => nextCooldownUsers.delete(socket.id), NEXT_COOLDOWN_MS);
 
-      waitingUsers.push(socket.id);
+      enqueue(socket.id);
       socket.emit("waiting");
 
       if (partnerId && io.sockets.sockets.get(partnerId)) {
@@ -222,7 +233,7 @@ io.on("connection", (socket) => {
           NEXT_COOLDOWN_MS
         );
 
-        waitingUsers.push(partnerId);
+        enqueue(partnerId);
         io.to(partnerId).emit("waiting");
       }
 
@@ -231,9 +242,7 @@ io.on("connection", (socket) => {
       // even if matchUsers runs before the timeout expires.
       setTimeout(() => matchUsers(), NEXT_COOLDOWN_MS);
     } else {
-      if (!waitingUsers.includes(socket.id)) {
-        waitingUsers.push(socket.id);
-      }
+      enqueue(socket.id);
       socket.emit("waiting");
       matchUsers();
     }
@@ -248,7 +257,7 @@ io.on("connection", (socket) => {
       if (partnerId && io.sockets.sockets.get(partnerId)) {
         io.to(partnerId).emit("partnerLeft", { partnerId: socket.id });
         // Put the PARTNER back in queue — they didn't leave
-        waitingUsers.push(partnerId);
+        enqueue(partnerId);
         io.to(partnerId).emit("waiting");
         setTimeout(() => matchUsers(), 100);
       }
@@ -258,7 +267,23 @@ io.on("connection", (socket) => {
 
     // Remove from waiting queue entirely — do NOT requeue this user
     waitingUsers = waitingUsers.filter((id) => id !== socket.id);
+    clearRelaxTimer(socket.id);
   });
+
+  // The user asked to widen the search themselves. This is the only thing that
+  // clears a gender filter — nothing on the server does it behind their back.
+  socket.on("widenSearch", () => {
+    const current = waitingFilters.get(socket.id);
+    if (!current) return;
+
+    waitingFilters.set(socket.id, {
+      gender: NO_GENDER_FILTER,
+      location: LOCATION_WORLDWIDE,
+    });
+    socket.emit("searchWidened", { gender: true, location: true });
+    matchUsers();
+  });
+
   socket.on("ready-to-connect", () => {
     rtcReadyUsers.add(socket.id);
 
@@ -303,6 +328,7 @@ io.on("connection", (socket) => {
     videoEnabledUsers.delete(socket.id);
     rtcReadyUsers.delete(socket.id);
     nextCooldownUsers.delete(socket.id);
+    clearRelaxTimer(socket.id);
     waitingFilters.delete(socket.id);
     waitingAttrs.delete(socket.id);
 
@@ -348,6 +374,42 @@ function cleanupChatPair(socketId) {
 // Bridges the socket-keyed maps to the pure predicate. A socket with no entry
 // yet — its profile read has not resolved — is treated as unfiltered and
 // attribute-less, which makes it matchable rather than stuck.
+// Every route into the waiting queue goes through here, so nobody can be left
+// waiting without a timer attached.
+function enqueue(socketId) {
+  if (!waitingUsers.includes(socketId)) waitingUsers.push(socketId);
+  startRelaxTimer(socketId);
+}
+
+function startRelaxTimer(socketId) {
+  clearRelaxTimer(socketId);
+  relaxTimers.set(
+    socketId,
+    setTimeout(() => {
+      relaxTimers.delete(socketId);
+
+      const current = waitingFilters.get(socketId);
+      // Gender is deliberately untouched: location is the preference people
+      // hold weakly, and silently handing someone the gender they filtered out
+      // is worse than a longer wait.
+      if (!current || current.location === LOCATION_WORLDWIDE) return;
+
+      waitingFilters.set(socketId, { ...current, location: LOCATION_WORLDWIDE });
+      // Booleans meaning "this got widened", not the new filter values. The
+      // widened gender value is "" — falsy — so a client testing the value
+      // could never tell "gender was widened" from "gender was never set".
+      io.to(socketId).emit("searchWidened", { location: true });
+      matchUsers();
+    }, RELAX_AFTER_MS)
+  );
+}
+
+function clearRelaxTimer(socketId) {
+  const timer = relaxTimers.get(socketId);
+  if (timer) clearTimeout(timer);
+  relaxTimers.delete(socketId);
+}
+
 function filtersAllowPair(id1, id2) {
   return canPairByFilters(
     { filter: waitingFilters.get(id1), attrs: waitingAttrs.get(id1) },
@@ -368,6 +430,8 @@ function matchUsers() {
 
       waitingUsers.splice(j, 1);
       waitingUsers.splice(i, 1);
+      clearRelaxTimer(user1);
+      clearRelaxTimer(user2);
       createChatPair(
         user1,
         user2,
