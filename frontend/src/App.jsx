@@ -270,13 +270,6 @@ function App() {
   }, []);
 
   const handleStartChat = async (email, withVideo) => {
-    // A user who has never confirmed their age has not been through onboarding.
-    if (localStorage.getItem("needsOnboarding") === "true") {
-      localStorage.removeItem("needsOnboarding");
-      setCurrentScreen("onboarding");
-      return;
-    }
-
     storeEmail(email);
     localStorage.setItem("withVideo", withVideo);
 
@@ -427,6 +420,15 @@ function App() {
             onStart={(email, withVideo) => {
               storeEmail(email);
               localStorage.setItem("withVideo", withVideo);
+              // Login calls this inline callback, not handleStartChat, so the
+              // onboarding hand-off has to happen here. Putting it in
+              // handleStartChat sent new users to the lobby first and only
+              // caught them when they later pressed "Lets Vibe".
+              if (localStorage.getItem("needsOnboarding") === "true") {
+                localStorage.removeItem("needsOnboarding");
+                setCurrentScreen("onboarding");
+                return;
+              }
               // Connect the socket on fresh login so the global chat on the
               // start screen receives history and can send messages. Without
               // this, only auto-login users had a live socket.

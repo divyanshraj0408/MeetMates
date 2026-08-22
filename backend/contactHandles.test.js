@@ -28,6 +28,26 @@ test("catches a plain and an obfuscated email", () => {
   assert.strictEqual(flags("me at gmail dot com"), true);
 });
 
+test("does not flag short platform names used as ordinary words", () => {
+  // "ig" is "I guess" for most of this app's users, and "fb group project" is
+  // a study group. Rejecting those bios is worse than missing a handle.
+  const fine = [
+    "ig you are right, idk what to say",
+    "tbh ig this is fine",
+    "fb group project due tmrw",
+    "wa a great day honestly",
+  ];
+  for (const bio of fine) {
+    assert.strictEqual(flags(bio), false, `false positive on: ${bio}`);
+  }
+});
+
+test("still flags a short platform name with a separator or an @", () => {
+  assert.strictEqual(flags("ig: divyansh"), true);
+  assert.strictEqual(flags("ig @divyansh"), true);
+  assert.strictEqual(flags("fb - divyansh raj"), true);
+});
+
 test("does not flag ordinary bios", () => {
   const fine = [
     "3rd year, into indie rock and terrible at FIFA",

@@ -19,6 +19,20 @@ test("accepts a complete, valid profile", () => {
 test("accepts an entirely empty profile — every field is optional", () => {
   const r = sanitizeProfileInput({});
   assert.strictEqual(r.ok, true);
+  assert.deepStrictEqual(r.profile, {});
+});
+
+test("omitting interests leaves them untouched rather than wiping them", () => {
+  // The route merges this over the stored profile, so returning [] here would
+  // erase a user's interests on any update that did not resend them — which
+  // Onboarding's "Skip for now" does.
+  const r = sanitizeProfileInput({ bio: "just changing my bio" });
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual("interests" in r.profile, false);
+});
+
+test("an explicitly empty interests array does clear them", () => {
+  const r = sanitizeProfileInput({ interests: [] });
   assert.deepStrictEqual(r.profile.interests, []);
 });
 

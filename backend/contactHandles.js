@@ -8,8 +8,11 @@
 // accept costs the guarantee. It reduces casual leakage — it cannot stop
 // someone reading their handle aloud on camera, and is not meant to.
 
-const PLATFORMS =
-  "ig|insta|instagram|snap|snapchat|tg|telegram|discord|fb|facebook|twitter|whatsapp|wa";
+// Split by ambiguity. "instagram" is only ever a platform; "ig" is how half of
+// this app's users write "I guess", and "fb group project" is a study group.
+const PLATFORMS_CLEAR =
+  "insta|instagram|snapchat|telegram|discord|facebook|twitter|whatsapp";
+const PLATFORMS_SHORT = "ig|fb|tg|wa|sc|snap";
 
 const EMAIL = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
 // "me at gmail dot com"
@@ -17,8 +20,17 @@ const OBFUSCATED_EMAIL = /\b[a-z0-9._%+-]+\s+at\s+[a-z0-9.-]+\s+dot\s+[a-z]{2,}\
 // "@handle" — needs two or more characters straight after the @, so "at @ 5"
 // and a lone "@" do not trip it.
 const AT_HANDLE = /(?:^|[^\w@])@[a-z0-9._]{2,}/i;
+// An unmistakable platform name may be followed straight by a handle.
 const PLATFORM_HANDLE = new RegExp(
-  `\\b(?:${PLATFORMS})\\b\\s*(?:is|:|-|–|—)?\\s*@?[a-z0-9._]{3,}`,
+  `\\b(?:${PLATFORMS_CLEAR})\\b\\s*(?:is|:|-|–|—)?\\s*@?[a-z0-9._]{3,}`,
+  "i"
+);
+
+// A short form only counts with an explicit separator or an @, so "ig you are
+// right" and "fb group project" stay legal while "ig: divyansh" does not.
+const SHORT_PLATFORM_HANDLE = new RegExp(
+  `\\b(?:${PLATFORMS_SHORT})\\b\\s*(?::|-|–|—|\\bis\\b)\\s*@?[a-z0-9._]{3,}` +
+    `|\\b(?:${PLATFORMS_SHORT})\\b\\s*@[a-z0-9._]{2,}`,
   "i"
 );
 
@@ -39,7 +51,13 @@ function findContactHandle(text) {
 
   if (EMAIL.test(value) || OBFUSCATED_EMAIL.test(value)) return "email address";
   if (findPhone(value)) return "phone number";
-  if (AT_HANDLE.test(value) || PLATFORM_HANDLE.test(value)) return "social handle";
+  if (
+    AT_HANDLE.test(value) ||
+    PLATFORM_HANDLE.test(value) ||
+    SHORT_PLATFORM_HANDLE.test(value)
+  ) {
+    return "social handle";
+  }
   return null;
 }
 

@@ -53,9 +53,9 @@ function sanitizeProfileInput(input = {}) {
       return fail(`Pick at most ${MAX_INTERESTS} interests.`);
     }
     profile.interests = unique;
-  } else {
-    profile.interests = [];
   }
+  // No `else`: an absent key means "unchanged", the same as every other field
+  // here. Defaulting to [] made any PUT that omitted interests wipe them.
 
   if ("bio" in input) {
     const v = String(input.bio || "").trim();
