@@ -314,10 +314,34 @@ function cleanupChatPair(socketId) {
   console.log(`Cleaned up chat pair: ${socketId} and ${partnerId}`);
 }
 
+// One loop. There used to be two: matchUsersByVideoPreference split the queue
+// into video and text-only users, then matchRemainingUsers paired whatever was
+// left. WITH_VIDEO has been hardcoded true in Login.jsx since the opt-out
+// checkbox was removed, so every user landed in the video bucket and
+// matchRemainingUsers never ran. Two near-identical loops would mean writing
+// every future pairing rule twice and keeping the copies in step.
 function matchUsers() {
-  matchUsersByVideoPreference();
-  if (waitingUsers.length >= 2) {
-    matchRemainingUsers();
+  let i = 0;
+  while (i < waitingUsers.length - 1) {
+    const user1 = waitingUsers[i];
+    let matched = false;
+
+    for (let j = i + 1; j < waitingUsers.length; j++) {
+      const user2 = waitingUsers[j];
+      if (!canPair(user1, user2)) continue;
+
+      waitingUsers.splice(j, 1);
+      waitingUsers.splice(i, 1);
+      createChatPair(
+        user1,
+        user2,
+        videoEnabledUsers.has(user1) || videoEnabledUsers.has(user2)
+      );
+      matched = true;
+      break;
+    }
+
+    if (!matched) i++;
   }
 }
 
@@ -325,68 +349,6 @@ function matchUsers() {
 // cooldown window, preventing an immediate re-match of the same two people.
 function canPair(id1, id2) {
   return !(nextCooldownUsers.has(id1) && nextCooldownUsers.has(id2));
-}
-
-function matchUsersByVideoPreference() {
-  const videoUsers = waitingUsers.filter((id) => videoEnabledUsers.has(id));
-  const textOnlyUsers = waitingUsers.filter((id) => !videoEnabledUsers.has(id));
-
-  let i = 0;
-  while (i < videoUsers.length - 1) {
-    const user1 = videoUsers[i];
-    let matched = false;
-    for (let j = i + 1; j < videoUsers.length; j++) {
-      const user2 = videoUsers[j];
-      if (canPair(user1, user2)) {
-        videoUsers.splice(j, 1);
-        videoUsers.splice(i, 1);
-        waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
-        createChatPair(user1, user2, true);
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) i++;
-  }
-
-  let k = 0;
-  while (k < textOnlyUsers.length - 1) {
-    const user1 = textOnlyUsers[k];
-    let matched = false;
-    for (let j = k + 1; j < textOnlyUsers.length; j++) {
-      const user2 = textOnlyUsers[j];
-      if (canPair(user1, user2)) {
-        textOnlyUsers.splice(j, 1);
-        textOnlyUsers.splice(k, 1);
-        waitingUsers = waitingUsers.filter((id) => id !== user1 && id !== user2);
-        createChatPair(user1, user2, false);
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) k++;
-  }
-}
-
-function matchRemainingUsers() {
-  let i = 0;
-  while (i < waitingUsers.length - 1) {
-    const user1 = waitingUsers[i];
-    let matched = false;
-    for (let j = i + 1; j < waitingUsers.length; j++) {
-      const user2 = waitingUsers[j];
-      if (canPair(user1, user2)) {
-        waitingUsers.splice(j, 1);
-        waitingUsers.splice(i, 1);
-        const enableVideo =
-          videoEnabledUsers.has(user1) || videoEnabledUsers.has(user2);
-        createChatPair(user1, user2, enableVideo);
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) i++;
-  }
 }
 
 function createChatPair(user1, user2, withVideo) {
