@@ -73,19 +73,6 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 
-app.get("/api/profile", authMiddleware, (req, res) => {
-  res.json({
-    success: true,
-    user: {
-      id: req.user._id,
-      email: req.user.email,
-      name: req.user.name,
-      profilePicture: req.user.profilePicture,
-      isGoogleUser: req.user.isGoogleUser,
-    },
-  });
-});
-
 app.get("/api/verify-token", authMiddleware, (req, res) => {
   res.json({
     success: true,
