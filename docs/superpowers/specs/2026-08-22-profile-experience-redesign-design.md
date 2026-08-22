@@ -174,6 +174,31 @@ user document to prove it emits exactly six keys and never `name`, `email`,
 
 ---
 
+## Revision, 2026-08-22 (post-build)
+
+Three changes after seeing it running. Recorded here rather than left to
+diverge from the code.
+
+**Interests are an input with suggestions, not a grouped board.** Seven labelled
+sections was more classification than picking a few tags needs. You type, live
+suggestions appear, and picking one drops it in as a removable chip. The
+vocabulary is unchanged and still fixed — suggestions need a list, and the
+server validates against one. Groups remain in the data, colouring chips and
+feeding the game's prompts later; they are simply no longer announced. The
+counter and the eight-tag limit are unaffected.
+
+**The in-call toggle is the ID-card icon alone.** "who's this?" is gone. The
+collapse behaviour stays — the video is unobstructed until tapped — and an
+`aria-label` carries the meaning for anyone who cannot see the icon.
+
+**The lobby's edit entry is a chip, not a bare button.** It reads "your vibe" and
+matches the `.filter` chips directly above it. Removing it entirely was
+considered and rejected: it is the only route to the edit screen, so removing it
+would make a profile permanently unchangeable after onboarding.
+
+The sections below describe the pre-revision design of the chip board; the rest
+of the spec stands.
+
 ## Interest chips
 
 Seven groups over four palette colours:
