@@ -41,7 +41,9 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  // For ID card signup
+  // Left over from the ID-card signup flow, which was removed with password
+  // auth. Kept, like `password`, so documents written before then stay
+  // readable; nothing writes it any more.
   generatedUserId: {
     type: String,
     sparse: true
