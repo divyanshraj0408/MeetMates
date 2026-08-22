@@ -45,7 +45,33 @@ async function visibleProfileFor(socket) {
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = ["http://localhost:5173", "https://www.meetmates.space", "https://meet-mates.vercel.app"];
+// Origins allowed to call this API, for both Express and Socket.IO.
+//
+// CORS_ORIGIN was being set in the Render dashboard while this list stayed
+// hardcoded, so the deployed frontend was blocked by a value nobody could see
+// in the config. Read it here, and accept a comma-separated list for the sites
+// reachable at more than one hostname (apex and www are different origins).
+//
+// Trailing slashes are stripped because an Origin header never carries one, so
+// "https://example.com/" in the dashboard would match nothing and look like a
+// server bug rather than a typo.
+const DEFAULT_ORIGINS = [
+  "http://localhost:5173",
+  "https://www.meetmates.space",
+  "https://meet-mates.vercel.app",
+];
+
+const allowedOrigins = [
+  ...new Set([
+    ...DEFAULT_ORIGINS,
+    ...String(process.env.CORS_ORIGIN || "")
+      .split(",")
+      .map((origin) => origin.trim().replace(/\/+$/, ""))
+      .filter(Boolean),
+  ]),
+];
+
+console.log("CORS allowed origins:", allowedOrigins.join(", "));
 
 app.use(
   cors({
