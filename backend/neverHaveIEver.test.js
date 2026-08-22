@@ -195,3 +195,40 @@ test("buildPrompt asks for universal statements when no interests are given", ()
 test("STATEMENTS_PER_BATCH is 6", () => {
   assert.equal(STATEMENTS_PER_BATCH, 6);
 });
+
+test("drops statements aimed at the other player", () => {
+  // Never Have I Ever is a confession about your own past. A line addressed at
+  // the person on the call is the app making a pass at a stranger in its own
+  // voice, rather than something both players opted into by playing — which is
+  // the distinction the whole feature rests on. The model wrote "steal a moment
+  // alone with you" and "imagined our first kiss" before the rule was added.
+  const raw = [
+    "Never have I ever imagined our first kiss during an anime climax.",
+    "Never have I ever stolen a moment alone with you.",
+    "Never have I ever let us both down at a pub quiz.",
+    "Never have I ever sworn at a youtuber mid-stream.",
+    "Never have I ever held a grudge over a lost match.",
+    "Never have I ever told someone I loved them too early.",
+  ].join("\n");
+
+  const out = parseStatements(raw);
+
+  assert.deepStrictEqual(out, [
+    "Never have I ever sworn at a youtuber mid-stream.",
+    "Never have I ever held a grudge over a lost match.",
+    "Never have I ever told someone I loved them too early.",
+  ]);
+});
+
+test("the second-person filter does not eat innocent words", () => {
+  // Word boundaries, not substrings: "youtuber" contains "you" and "held"
+  // contains "hel". Over-matching here would silently shrink every batch.
+  for (const line of [
+    "Never have I ever sworn at a youtuber mid-stream.",
+    "Never have I ever held a grudge over a lost match.",
+    "Never have I ever toured a stadium alone.",
+    "Never have I ever housed a stray cat for a week.",
+  ]) {
+    assert.deepStrictEqual(parseStatements(line), [line], line);
+  }
+});

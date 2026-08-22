@@ -100,6 +100,13 @@ function parseStatements(raw) {
     // ("Sure, here are some statements:") disappear rather than leak through.
     if (!/^never have i ever\s/i.test(clean)) continue;
 
+    // Drop anything addressed at the other player. The prompt forbids it, but
+    // the prompt also forbids non-ASCII and the model emits it anyway, so this
+    // is enforced here too. A statement aimed at the person on the call is the
+    // app making a pass at a stranger on the player's behalf; a short batch is
+    // the cheaper failure. Word boundaries keep "youtuber" and "held" safe.
+    if (/\b(you|your|yours|we|us|our|ours)\b/i.test(clean)) continue;
+
     const capped = clean.slice(0, MAX_STATEMENT_LENGTH);
     if (seen.has(capped)) continue;
     seen.add(capped);
@@ -158,6 +165,14 @@ function buildPrompt(tier, interests) {
     `- Output exactly ${STATEMENTS_PER_BATCH} lines, nothing else.`,
     "- No numbering, no bullets, no headers, no commentary before or after.",
     "- Nothing involving minors, coercion, or illegal acts.",
+    // The game is a confession about your own past, never a line aimed at the
+    // person across the call. Without this the model wrote "steal a moment
+    // alone with you" and "imagined our first kiss" — which is the app putting
+    // a come-on to a stranger on their screen in its own voice, rather than a
+    // thing both players opted into by playing. That distinction is the whole
+    // reason this feature is defensible, so it is a rule and not a preference.
+    "- Write about your own past only. Never address the other player.",
+    '- Never use "you", "your", "we", "us", or "our". Only "I" and "my".',
   ].join("\n");
 
   const list = Array.isArray(interests) ? interests.filter(Boolean) : [];
