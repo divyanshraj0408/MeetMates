@@ -26,7 +26,6 @@ function EditProfile({ onDone, onBack }) {
   const [profile, setProfile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [sheet, setSheet] = useState(false);
 
   const auth = {
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -112,6 +111,15 @@ function EditProfile({ onDone, onBack }) {
             <BioField value={profile.bio} onChange={(bio) => set({ bio })} />
           </div>
 
+          {/* The real panel a partner sees, rendered from current form state —
+              same component, so the preview cannot drift from the thing. */}
+          <div className="pf-field">
+            <p className="pf-field-label">
+              <Emoji slug="identification-card_1faaa" /> what they see
+            </p>
+            <ProfilePanel profile={profile} />
+          </div>
+
           {error && <p className="pf-error">{error}</p>}
 
           <button type="button" className="pf-back" onClick={onBack} disabled={saving}>
@@ -119,26 +127,12 @@ function EditProfile({ onDone, onBack }) {
           </button>
         </div>
 
-        {/* The real panel, in the collapsed state a partner first meets. */}
         <div className="pf-bar">
-          <div className="pf-bar-preview">
-            {/* onToggle hands the open state to this page, so the panel's own
-                button opens the sheet instead of expanding in place. */}
-            <ProfilePanel profile={profile} onToggle={() => setSheet(true)} />
-          </div>
           <button type="button" className="pf-save" onClick={save} disabled={saving}>
             {saving ? "locking in..." : "lock it in"}
           </button>
         </div>
       </div>
-
-      {sheet && (
-        <div className="pf-sheet" onClick={() => setSheet(false)}>
-          <div className="pf-sheet-inner" onClick={(e) => e.stopPropagation()}>
-            <ProfilePanel profile={profile} startOpen />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

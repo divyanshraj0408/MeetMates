@@ -90,7 +90,7 @@ function Onboarding({ onDone }) {
           <div className="pf-progress" />
           <h1 className="pf-prompt">that's you</h1>
           <div className="pf-step-body">
-            <ProfilePanel profile={profile} startOpen />
+            <ProfilePanel profile={profile} />
             <p className="pf-hint" style={{ color: "#fff", opacity: 0.9 }}>
               this is all anyone sees. you can change it any time from the lobby.
             </p>

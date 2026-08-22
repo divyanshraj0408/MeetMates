@@ -13,14 +13,12 @@ const LABELS = Object.fromEntries(
  * the same component in both, so the preview cannot show something the partner
  * would not.
  */
-function ProfilePanel({ profile, inCall = false, startOpen = false, onToggle }) {
-  const [ownOpen, setOwnOpen] = useState(startOpen);
-
-  // When a parent passes onToggle it owns the open state, and this copy stays
-  // collapsed. Without that, the edit page's sticky bar expanded its own panel
-  // AND opened the sheet from the same click — two panels, one tap.
-  const open = onToggle ? false : ownOpen;
-  const toggle = onToggle || (() => setOwnOpen((o) => !o));
+function ProfilePanel({ profile, inCall = false }) {
+  // Collapsing only earns its place over video, where the panel is covering
+  // someone's face. As a preview it is the whole point of the block it sits in,
+  // so it is simply always open and has no toggle to mis-fire.
+  const [open, setOpen] = useState(false);
+  const isOpen = inCall ? open : true;
   const p = profile || {};
 
   const country = COUNTRY_BY_CODE[p.countryCode] || "";
@@ -34,32 +32,23 @@ function ProfilePanel({ profile, inCall = false, startOpen = false, onToggle }) 
 
   return (
     <div className={`pf-panel ${inCall ? "pf-panel-incall" : ""}`}>
-      <button
-        type="button"
-        className="pf-panel-toggle"
-        aria-label={
-          inCall
-            ? open
-              ? "hide their profile"
-              : "see their profile"
-            : "see how your profile looks"
-        }
-        onClick={toggle}
-        {...(onToggle
-          // This copy opens a dialog rather than expanding, so aria-expanded
-          // would be a lie — it is never true.
-          ? { "aria-haspopup": "dialog" }
-          : { "aria-expanded": open })}
-      >
-        <img
-          className="pf-emoji"
-          src={`${EMOJI_BASE}/identification-card_1faaa.png`}
-          alt=""
-        />
+      {inCall && (
+        <button
+          type="button"
+          className="pf-panel-toggle"
+          aria-label={open ? "hide their profile" : "see their profile"}
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <img
+            className="pf-emoji"
+            src={`${EMOJI_BASE}/identification-card_1faaa.png`}
+            alt=""
+          />
+        </button>
+      )}
 
-      </button>
-
-      {open && (
+      {isOpen && (
         <div className="pf-panel-body">
           {!hasAnything && (
             <p className="pf-panel-empty">
