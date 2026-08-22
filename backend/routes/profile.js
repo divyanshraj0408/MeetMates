@@ -44,7 +44,7 @@ router.put("/", authMiddleware, async (req, res) => {
     if (!verdict.ok) {
       return res
         .status(400)
-        .json({ error: "That bio was blocked by moderation. Try rewording it." });
+        .json({ error: "moderation didn't like that bio. try rewording it" });
     }
   }
 
@@ -62,7 +62,7 @@ router.put("/", authMiddleware, async (req, res) => {
     await user.save();
   } catch (err) {
     console.error("Failed to save profile:", err.message);
-    return res.status(500).json({ error: "Could not save your profile." });
+    return res.status(500).json({ error: "that didn't save. try again" });
   }
 
   res.json({ success: true, profile: user.profile });
