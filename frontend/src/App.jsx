@@ -390,6 +390,8 @@ function App() {
     setMessages([]);
     setPartnerTyping(false);
     setPartnerProfile(null);
+    // Describes the previous search, not the one about to start.
+    setSearchWidened(null);
     setCurrentPartnerId(null);
     setIsVideoChat(false);
     socket.emit("next");
