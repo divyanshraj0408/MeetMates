@@ -75,7 +75,8 @@ router.post('/google-login', async (req, res) => {
         name: user.name,
         profilePicture: user.profilePicture,
         isGoogleUser: user.isGoogleUser,
-        withVideo: user.withVideo
+        withVideo: user.withVideo,
+        isAdultConfirmed: Boolean(user.isAdultConfirmed)
       }
     });
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import ChatPanel from "./chat/ChatPanel";
 import "./startpage.css";
+import "./profile/profile.css";
 
 function StartPage({
   onStartChat,
@@ -13,6 +14,7 @@ function StartPage({
   onSendGlobal,
   onReactGlobal,
   onTypingGlobal,
+  onEditProfile,
 }) {
   const videoRef = useRef(null);
   // Mobile only: the right box shows one pane at a time. Desktop shows both.
@@ -113,6 +115,9 @@ function StartPage({
                 />
               </>
             )}
+          </button>
+          <button type="button" className="pf-edit-link" onClick={onEditProfile}>
+            Edit your profile
           </button>
         </div>
 

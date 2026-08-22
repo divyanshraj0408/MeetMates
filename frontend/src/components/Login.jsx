@@ -41,6 +41,9 @@ function Login({
 
       localStorage.setItem("token", token);
       setToken(token);
+      if (!user.isAdultConfirmed) {
+        localStorage.setItem("needsOnboarding", "true");
+      }
       onStart(user.email, WITH_VIDEO);
     } catch (err) {
       console.error("Google login error:", err);

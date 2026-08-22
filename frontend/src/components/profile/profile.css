@@ -151,3 +151,80 @@
   opacity: 0.6;
   cursor: default;
 }
+
+.pf-page {
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #00c6ff, #0072ff);
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px;
+  overflow-y: auto;
+}
+
+.pf-card {
+  background: #fffaff;
+  border: 4px solid #0d0d0d;
+  border-radius: 18px;
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.9);
+  padding: 28px;
+  max-width: 620px;
+  width: 100%;
+  height: fit-content;
+}
+
+.pf-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "RightGrostek", sans-serif;
+  font-size: 1.9rem;
+  color: #ff3f80;
+  margin-bottom: 6px;
+}
+
+.pf-emoji-lg {
+  width: 28px;
+  height: 28px;
+}
+
+.pf-sub {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin-bottom: 20px;
+}
+
+.pf-adult {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffea00;
+  border: 3px solid #0d0d0d;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 22px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pf-skip {
+  margin-top: 16px;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  font-family: "Rethink Sans", sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.pf-edit-link {
+  margin-top: 14px;
+  background: none;
+  border: none;
+  color: #fff;
+  text-decoration: underline;
+  font-family: "Rethink Sans", sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  opacity: 0.85;
+}

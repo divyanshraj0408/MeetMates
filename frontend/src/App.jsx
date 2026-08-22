@@ -4,6 +4,8 @@ import Login from "./components/Login";
 import StartPage from "./components/StartingPage";
 import WaitingRoom from "./components/WaitingRoom";
 import ChatRoom from "./components/ChatRoom";
+import Onboarding from "./components/profile/Onboarding";
+import EditProfile from "./components/profile/EditProfile";
 import socket from "./Socket";
 import "./App.css";
 
@@ -263,6 +265,13 @@ function App() {
   }, []);
 
   const handleStartChat = async (email, withVideo) => {
+    // A user who has never confirmed their age has not been through onboarding.
+    if (localStorage.getItem("needsOnboarding") === "true") {
+      localStorage.removeItem("needsOnboarding");
+      setCurrentScreen("onboarding");
+      return;
+    }
+
     storeEmail(email);
     localStorage.setItem("withVideo", withVideo);
 
@@ -448,6 +457,7 @@ function App() {
             onSendGlobal={handleSendGlobal}
             onReactGlobal={handleReactGlobal}
             onTypingGlobal={handleTypingGlobal}
+            onEditProfile={() => setCurrentScreen("editProfile")}
           />
         );
 
@@ -470,6 +480,7 @@ function App() {
             onSendGlobal={handleSendGlobal}
             onReactGlobal={handleReactGlobal}
             onTypingGlobal={handleTypingGlobal}
+            onEditProfile={() => setCurrentScreen("editProfile")}
           />
         );
 
@@ -487,6 +498,17 @@ function App() {
             partnerTyping={partnerTyping}
             onReactPair={handleReactPair}
             onTypingPair={handleTypingPair}
+          />
+        );
+
+      case "onboarding":
+        return <Onboarding onDone={() => setCurrentScreen("start")} />;
+
+      case "editProfile":
+        return (
+          <EditProfile
+            onDone={() => setCurrentScreen("start")}
+            onBack={() => setCurrentScreen("start")}
           />
         );
 
