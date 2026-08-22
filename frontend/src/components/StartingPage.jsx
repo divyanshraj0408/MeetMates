@@ -22,6 +22,8 @@ function StartPage({
   onReactGlobal,
   onTypingGlobal,
   onEditProfile,
+  onWidenSearch,
+  searchWidened,
 }) {
   const videoRef = useRef(null);
   // Mobile only: the right box shows one pane at a time. Desktop shows both.
@@ -183,6 +185,31 @@ function StartPage({
               </>
             )}
           </button>
+
+          {loading && (
+            <div className="mf-searching">
+              {searchWidened?.gender ? (
+                <p className="mf-searching-note">looking for anyone now.</p>
+              ) : searchWidened ? (
+                <p className="mf-searching-note">
+                  no luck nearby — looking worldwide now.
+                </p>
+              ) : (
+                <p className="mf-searching-note">
+                  looking for{" "}
+                  {genderFilter ? GENDER_LABEL[genderFilter].toLowerCase() : "anyone"}
+                  {locationFilter === "country" && myCountry ? " in your country" : ""}.
+                </p>
+              )}
+
+              {genderFilter && !searchWidened?.gender && (
+                <button type="button" className="mf-widen" onClick={onWidenSearch}>
+                  match me with anyone
+                </button>
+              )}
+            </div>
+          )}
+
           <button type="button" className="pf-edit-link" onClick={onEditProfile}>
             <img
               src="https://em-content.zobj.net/source/apple/419/writing-hand_270d-fe0f.png"

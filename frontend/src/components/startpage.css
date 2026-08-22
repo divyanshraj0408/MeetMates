@@ -303,3 +303,29 @@
   cursor: not-allowed;
   transform: none;
 }
+
+.mf-searching {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.mf-searching-note {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.mf-widen {
+  background: transparent;
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-family: "Rethink Sans", sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.mf-widen:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
