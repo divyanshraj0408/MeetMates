@@ -1,29 +1,133 @@
-/* Every selector is pf- prefixed. Unscoped chat class names leaked between
-   pages in this app once already and cost days to unpick. */
+/* Every selector is pf- prefixed. Unscoped component class names leaked between
+   pages in this app once and cost days to unpick. */
 
-.pf-form {
+.pf-page {
+  min-height: 100dvh;
+  background: linear-gradient(to bottom right, #00c6ff, #0072ff);
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  max-width: 560px;
-  width: 100%;
+  color: #0d0d0d; /* own your colour: a surface that inherits goes black-on-black */
 }
 
-.pf-field {
-  border: none;
-  padding: 0;
-  margin: 0;
-}
+/* ---------- shared controls ---------- */
 
-.pf-field legend {
+.pf-chips {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: "RightGrostek", sans-serif;
-  font-size: 1.05rem;
-  font-weight: 700;
-  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.pf-chip {
+  border: 3px solid #0d0d0d;
+  border-radius: 999px;
+  background: #fff;
   color: #0d0d0d;
+  padding: 9px 16px;
+  font-family: "Rethink Sans", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.09s, box-shadow 0.09s;
+}
+
+.pf-chip:hover:not(:disabled):not(.pf-chip-on) {
+  transform: translate(-2px, -2px);
+  box-shadow: 2px 2px 0 #0d0d0d;
+}
+
+/* Selected chips tilt. transform does not affect layout, so a wrapping row
+   will not reflow as they are picked. */
+.pf-chip-on {
+  box-shadow: 3px 3px 0 #0d0d0d;
+  transform: rotate(-2deg);
+}
+
+.pf-chip-on:nth-child(even) {
+  transform: rotate(2deg);
+}
+
+.pf-chip:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Category colours. One class per interest group, four palette colours over
+   seven groups. */
+.pf-chip-music.pf-chip-on,
+.pf-chip-mind.pf-chip-on {
+  background: #ff5ca2;
+  color: #fff;
+}
+
+.pf-chip-play.pf-chip-on,
+.pf-chip-out.pf-chip-on {
+  background: #0099ff;
+  color: #fff;
+}
+
+.pf-chip-screen.pf-chip-on,
+.pf-chip-other.pf-chip-on {
+  background: #9b71ff;
+  color: #fff;
+}
+
+.pf-chip-make.pf-chip-on {
+  background: #ffea00;
+  color: #0d0d0d;
+}
+
+/* Age and gender chips have no category; they take the house blue. */
+.pf-chip-plain.pf-chip-on {
+  background: #0099ff;
+  color: #fff;
+}
+
+.pf-input,
+.pf-select,
+.pf-bio {
+  width: 100%;
+  border: 3px solid #0d0d0d;
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-family: "Rethink Sans", sans-serif;
+  font-size: 1rem;
+  background: #fff;
+  color: #0d0d0d;
+}
+
+.pf-select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #0d0d0d 50%),
+    linear-gradient(135deg, #0d0d0d 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 40px;
+}
+
+.pf-bio {
+  min-height: 110px;
+  resize: none;
+}
+
+.pf-input:focus,
+.pf-select:focus,
+.pf-bio:focus {
+  outline: none;
+  border-color: #0099ff;
+}
+
+.pf-hint {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  opacity: 0.65;
+}
+
+.pf-error {
+  color: #d43f24;
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin-top: 10px;
 }
 
 .pf-emoji {
@@ -32,117 +136,247 @@
   vertical-align: middle;
 }
 
-.pf-count {
-  margin-left: auto;
-  font-size: 0.8rem;
-  font-weight: 500;
-  opacity: 0.6;
-}
+/* ---------- interests counter ---------- */
 
-.pf-chips {
+.pf-counter {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  margin-bottom: 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
-/* Stickers, not checkboxes. */
-.pf-chip {
-  border: 3px solid #0d0d0d;
-  border-radius: 999px;
+.pf-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.pf-dot {
+  width: 11px;
+  height: 11px;
+  border: 2px solid #0d0d0d;
+  border-radius: 50%;
   background: #fff;
-  padding: 7px 14px;
-  font-family: "Rethink Sans", sans-serif;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.08s, box-shadow 0.08s;
 }
 
-.pf-chip:hover:not(:disabled) {
-  transform: translate(-2px, -2px);
-  box-shadow: 2px 2px 0 #0d0d0d;
-}
-
-.pf-chip-on {
+.pf-dot-on {
   background: #0099ff;
-  color: #fff;
-  box-shadow: 2px 2px 0 #0d0d0d;
 }
 
-.pf-chip:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
+.pf-counter-full {
+  background: #ffea00;
+  border: 2px solid #0d0d0d;
+  border-radius: 999px;
+  padding: 2px 10px;
 }
 
 .pf-group {
-  margin-bottom: 14px;
+  margin-bottom: 18px;
 }
 
 .pf-group-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  opacity: 0.7;
-  margin-bottom: 6px;
+  gap: 7px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0.75;
+  margin-bottom: 8px;
 }
 
-.pf-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+/* ---------- onboarding ---------- */
 
-.pf-input,
-.pf-bio {
+.pf-step {
   flex: 1;
-  min-width: 0;
-  border: 3px solid #0d0d0d;
-  border-radius: 10px;
-  padding: 11px 13px;
-  font-family: "Rethink Sans", sans-serif;
-  font-size: 0.95rem;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 18px 0;
+  max-width: 620px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.pf-progress {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 26px;
+  flex: 0 0 auto;
+}
+
+.pf-progress-seg {
+  flex: 1;
+  height: 7px;
+  border: 2px solid #0d0d0d;
+  border-radius: 999px;
   background: #fff;
 }
 
-.pf-bio {
-  width: 100%;
-  min-height: 84px;
-  resize: none;
+.pf-progress-seg-on {
+  background: #0099ff;
 }
 
-.pf-input:focus,
-.pf-bio:focus {
-  outline: none;
-  border-color: #0099ff;
+.pf-prompt {
+  font-family: "RightGrostek", sans-serif;
+  font-size: clamp(2.2rem, 11vw, 3.4rem);
+  line-height: 1.02;
+  color: #fff;
+  margin-bottom: 22px;
+  flex: 0 0 auto;
 }
 
-.pf-hint {
-  margin-top: 6px;
-  font-size: 0.78rem;
-  opacity: 0.6;
+/* The only scrolling region in a step. Its ancestors — .pf-page and .pf-step —
+   both carry min-height:0, without which this grows the page instead. */
+.pf-step-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 20px;
 }
 
-.pf-error {
-  color: #d43f24;
-  font-size: 0.9rem;
+.pf-step-nav {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0 max(16px, env(safe-area-inset-bottom));
+  background: transparent;
+}
+
+.pf-back {
+  background: none;
+  border: none;
+  color: #fff;
+  font-family: "Rethink Sans", sans-serif;
+  font-size: 1rem;
   font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 10px 4px;
+}
+
+.pf-next {
+  margin-left: auto;
+  background: #ff5ca2;
+  color: #fff;
+  border: 4px solid #0d0d0d;
+  border-radius: 32px;
+  padding: 13px 32px;
+  font-family: "Rethink Sans", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 #0d0d0d;
+}
+
+.pf-next:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 #0d0d0d;
+}
+
+.pf-next:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.pf-gate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffea00;
+  border: 3px solid #0d0d0d;
+  border-radius: 14px;
+  padding: 16px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 #0d0d0d;
+}
+
+.pf-gate input {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+}
+
+/* ---------- edit page ---------- */
+
+.pf-edit {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: 620px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.pf-edit-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 18px 24px;
+}
+
+.pf-edit-title {
+  font-family: "RightGrostek", sans-serif;
+  font-size: 2.1rem;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.pf-edit-sub {
+  color: #fff;
+  opacity: 0.85;
+  font-size: 0.92rem;
+  margin-bottom: 22px;
+}
+
+.pf-field {
+  background: #fffaff;
+  border: 3px solid #0d0d0d;
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55);
+}
+
+.pf-field-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: "RightGrostek", sans-serif;
+  font-size: 1.15rem;
+  margin-bottom: 12px;
+}
+
+/* Sticky bar: the real collapsed panel, plus save. */
+.pf-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px max(12px, env(safe-area-inset-bottom));
+  background: #0d0d0d;
+  border-top: 3px solid #0d0d0d;
+}
+
+.pf-bar-preview {
+  flex: 1;
+  min-width: 0;
 }
 
 .pf-save {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  align-self: flex-start;
+  flex: 0 0 auto;
   background: #ff5ca2;
   color: #fff;
-  border: 4px solid #0099ff;
-  border-radius: 32px;
-  padding: 13px 28px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  padding: 12px 24px;
   font-family: "Rethink Sans", sans-serif;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -152,113 +386,58 @@
   cursor: default;
 }
 
-.pf-page {
-  min-height: 100vh;
-  background: linear-gradient(to bottom right, #00c6ff, #0072ff);
+.pf-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
+  align-items: flex-end;
   justify-content: center;
-  padding: 32px 16px;
-  overflow-y: auto;
+  padding: 18px;
 }
 
-.pf-card {
-  background: #fffaff;
-  border: 4px solid #0d0d0d;
-  border-radius: 18px;
-  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.9);
-  padding: 28px;
-  max-width: 620px;
+.pf-sheet-inner {
   width: 100%;
-  height: fit-content;
+  max-width: 420px;
 }
 
-.pf-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: "RightGrostek", sans-serif;
-  font-size: 1.9rem;
-  color: #ff3f80;
-  margin-bottom: 6px;
-}
-
-.pf-emoji-lg {
-  width: 28px;
-  height: 28px;
-}
-
-.pf-sub {
-  font-size: 0.9rem;
-  opacity: 0.7;
-  margin-bottom: 20px;
-}
-
-.pf-adult {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #ffea00;
-  border: 3px solid #0d0d0d;
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 22px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.pf-skip {
-  margin-top: 16px;
-  background: none;
-  border: none;
-  text-decoration: underline;
-  font-family: "Rethink Sans", sans-serif;
-  font-size: 0.9rem;
-  cursor: pointer;
-  opacity: 0.7;
-}
-
-.pf-edit-link {
-  margin-top: 14px;
-  background: none;
-  border: none;
-  color: #fff;
-  text-decoration: underline;
-  font-family: "Rethink Sans", sans-serif;
-  font-size: 0.9rem;
-  cursor: pointer;
-  opacity: 0.85;
-}
+/* ---------- the in-call panel ---------- */
 
 .pf-panel {
+  max-width: 280px;
+  color: #f2f2f7;
+}
+
+.pf-panel-incall {
   position: absolute;
   top: 12px;
   right: 12px;
   z-index: 5;
-  max-width: 260px;
 }
 
 .pf-panel-toggle {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   background: rgba(0, 0, 0, 0.72);
   color: #fff;
   border: 2px solid rgba(255, 255, 255, 0.25);
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 7px 13px;
   font-family: "Rethink Sans", sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   backdrop-filter: blur(10px);
 }
 
 .pf-panel-body {
-  margin-top: 8px;
-  background: rgba(0, 0, 0, 0.78);
+  margin-top: 9px;
+  background: rgba(0, 0, 0, 0.82);
   border: 2px solid rgba(255, 255, 255, 0.18);
-  border-radius: 14px;
-  padding: 12px;
+  border-radius: 16px;
+  padding: 14px;
   color: #f2f2f7;
   backdrop-filter: blur(10px);
 }
@@ -267,35 +446,39 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 9px;
 }
 
 .pf-fact {
   background: #0099ff;
+  color: #fff;
   border-radius: 999px;
-  padding: 2px 9px;
-  font-size: 0.76rem;
+  padding: 3px 10px;
+  font-size: 0.78rem;
   font-weight: 700;
 }
 
-.pf-chip-static {
-  border-width: 2px;
-  border-color: rgba(255, 255, 255, 0.25);
-  background: transparent;
-  color: #f2f2f7;
-  padding: 3px 10px;
-  font-size: 0.76rem;
-  cursor: default;
+.pf-panel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
-.pf-chip-static:hover {
-  transform: none;
-  box-shadow: none;
+.pf-panel-tag {
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
 }
 
 .pf-panel-bio {
-  margin-top: 8px;
-  font-size: 0.82rem;
-  line-height: 1.4;
-  opacity: 0.9;
+  margin-top: 9px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  opacity: 0.92;
+}
+
+.pf-panel-empty {
+  font-size: 0.85rem;
+  opacity: 0.75;
 }
