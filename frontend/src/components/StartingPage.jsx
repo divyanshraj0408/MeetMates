@@ -191,8 +191,12 @@ function StartPage({
               {searchWidened?.gender ? (
                 <p className="mf-searching-note">looking for anyone now.</p>
               ) : searchWidened ? (
+                // Only location widened here, so say what is still narrowing
+                // the search. "looking worldwide now" alone reads as "no
+                // filters left" to someone who still has a gender filter on.
                 <p className="mf-searching-note">
-                  no luck nearby — looking worldwide now.
+                  no luck nearby — looking worldwide
+                  {genderFilter ? ` for ${GENDER_LABEL[genderFilter].toLowerCase()}` : ""} now.
                 </p>
               ) : (
                 <p className="mf-searching-note">
