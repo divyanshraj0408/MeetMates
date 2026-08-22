@@ -167,7 +167,7 @@ function registerGlobalChat(io, socket) {
 
     // Sending clears any typing state for this user.
     const uid = uidFor(email);
-    setTyping(typingRegistry, uid, displayNameFor(email), false, now, TYPING_TTL_MS);
+    setTyping(typingRegistry, uid, displayNameFor(socket), false, now, TYPING_TTL_MS);
     broadcastTyping(io, now);
 
     const outgoing = {
@@ -175,7 +175,7 @@ function registerGlobalChat(io, socket) {
       clientId,
       uid,
       sender: socket.id,
-      name: displayNameFor(email),
+      name: displayNameFor(socket),
       text: message,
       timestamp: new Date().toISOString(),
       reactions: {},
@@ -217,7 +217,7 @@ function registerGlobalChat(io, socket) {
     setTyping(
       typingRegistry,
       uidFor(email),
-      displayNameFor(email),
+      displayNameFor(socket),
       Boolean(typing),
       now,
       TYPING_TTL_MS

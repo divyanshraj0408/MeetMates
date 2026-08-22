@@ -67,3 +67,27 @@ test("tolerates a missing name and picture", () => {
   assert.strictEqual(r.fields.name, "");
   assert.strictEqual(r.fields.profilePicture, "");
 });
+
+const { displayNameFor } = require("./socketIdentity");
+
+test("displayNameFor uses the first word of the Google name", () => {
+  assert.strictEqual(
+    displayNameFor({ userName: "Divyansh Raj", userEmail: "d0408@gmail.com" }),
+    "Divyansh"
+  );
+});
+
+test("displayNameFor falls back to the email prefix with no name", () => {
+  assert.strictEqual(
+    displayNameFor({ userName: "", userEmail: "divyanshraj0408@gmail.com" }),
+    "divyanshraj0408"
+  );
+});
+
+test("displayNameFor tolerates a socket with neither", () => {
+  assert.strictEqual(displayNameFor({}), "someone");
+});
+
+test("displayNameFor trims surrounding whitespace", () => {
+  assert.strictEqual(displayNameFor({ userName: "  Aditi  Sharma " }), "Aditi");
+});

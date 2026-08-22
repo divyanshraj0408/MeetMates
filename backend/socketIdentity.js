@@ -30,6 +30,7 @@ async function lookupGlobalSender(socket) {
 
   if (decoded.email) {
     socket.userEmail = decoded.email;
+    socket.userName = decoded.name || "";
     return decoded.email;
   }
 
@@ -38,9 +39,10 @@ async function lookupGlobalSender(socket) {
   const id = decoded.id || decoded.userId;
   if (!id) return null;
   try {
-    const user = await User.findById(id).select("email");
+    const user = await User.findById(id).select("email name");
     if (!user) return null;
     socket.userEmail = user.email;
+    socket.userName = user.name || "";
     return user.email;
   } catch (err) {
     console.error("Failed to resolve chat sender from id:", err.message);
@@ -48,8 +50,15 @@ async function lookupGlobalSender(socket) {
   }
 }
 
-function displayNameFor(email) {
-  return String(email).split("@")[0];
+// Takes the socket, not an email: the display name now comes from the Google
+// profile, with the email prefix only as a fallback. An email handle carries a
+// surname and digits, so the first name actually reveals less.
+function displayNameFor(socket) {
+  const name = String(socket?.userName || "").trim();
+  if (name) return name.split(/\s+/)[0];
+
+  const email = String(socket?.userEmail || "");
+  return email.split("@")[0] || "someone";
 }
 
 module.exports = { resolveGlobalSender, displayNameFor };
