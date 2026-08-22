@@ -19,8 +19,8 @@ router.get("/", authMiddleware, (req, res) => {
     isAdultConfirmed: Boolean(u.isAdultConfirmed),
     profile: {
       ageBand: u.profile?.ageBand || "",
-      country: u.profile?.country || "",
-      region: u.profile?.region || "",
+      countryCode: u.profile?.countryCode || "",
+      city: u.profile?.city || u.profile?.region || "",
       gender: u.profile?.gender || "",
       interests: u.profile?.interests || [],
       bio: u.profile?.bio || "",

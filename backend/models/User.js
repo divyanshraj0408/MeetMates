@@ -51,8 +51,8 @@ const userSchema = new mongoose.Schema({
   // that could be used to find you afterwards — see the design spec.
   profile: {
     ageBand: { type: String, default: "" },
-    country: { type: String, trim: true, maxlength: 56, default: "" },
-    region: { type: String, trim: true, maxlength: 85, default: "" },
+    countryCode: { type: String, trim: true, maxlength: 2, default: "" },
+    city: { type: String, trim: true, maxlength: 85, default: "" },
     gender: { type: String, default: "" },
     interests: { type: [String], default: [] },
     bio: { type: String, trim: true, maxlength: 200, default: "" },
@@ -85,5 +85,14 @@ userSchema.methods.updateLastLogin = function() {
   this.lastLogin = new Date();
   return this.save();
 };
+
+// Matchmaking is an in-memory FIFO today and queries none of this. These are
+// for the matching sprint; adding them now costs almost nothing and removes a
+// migration later. Deliberately no compound index beyond location — the query
+// shape does not exist yet, and a wrong compound is worse than none.
+userSchema.index({ "profile.interests": 1 });
+userSchema.index({ "profile.ageBand": 1 });
+userSchema.index({ "profile.gender": 1 });
+userSchema.index({ "profile.countryCode": 1, "profile.city": 1 });
 
 module.exports = mongoose.model('User', userSchema);

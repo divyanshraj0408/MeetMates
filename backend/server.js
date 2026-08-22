@@ -16,6 +16,7 @@ const { registerGlobalChat } = require("./globalchat.js");
 const { registerPairChat } = require("./pairchat.js");
 const UserModel = require("./models/User.js");
 const { resolveGlobalSender } = require("./socketIdentity.js");
+const { buildPartnerPayload } = require("./partnerPayload.js");
 
 // The profile a partner is allowed to see. Explicitly built field by field
 // rather than spread from the document: a spread here is how name, email and
@@ -27,14 +28,7 @@ async function visibleProfileFor(socket) {
     const user = await UserModel.findOne({ email }).select("profile");
     const p = user?.profile;
     if (!p) return null;
-    return {
-      ageBand: p.ageBand || "",
-      country: p.country || "",
-      region: p.region || "",
-      gender: p.gender || "",
-      interests: p.interests || [],
-      bio: p.bio || "",
-    };
+    return buildPartnerPayload(p);
   } catch (err) {
     console.error("Failed to load partner profile:", err.message);
     return null;
