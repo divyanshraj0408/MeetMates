@@ -121,8 +121,10 @@ function EditProfile({ onDone, onBack }) {
 
         {/* The real panel, in the collapsed state a partner first meets. */}
         <div className="pf-bar">
-          <div className="pf-bar-preview" onClick={() => setSheet(true)}>
-            <ProfilePanel profile={profile} />
+          <div className="pf-bar-preview">
+            {/* onToggle hands the open state to this page, so the panel's own
+                button opens the sheet instead of expanding in place. */}
+            <ProfilePanel profile={profile} onToggle={() => setSheet(true)} />
           </div>
           <button type="button" className="pf-save" onClick={save} disabled={saving}>
             {saving ? "locking in..." : "lock it in"}

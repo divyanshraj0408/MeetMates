@@ -13,8 +13,14 @@ const LABELS = Object.fromEntries(
  * the same component in both, so the preview cannot show something the partner
  * would not.
  */
-function ProfilePanel({ profile, inCall = false, startOpen = false }) {
-  const [open, setOpen] = useState(startOpen);
+function ProfilePanel({ profile, inCall = false, startOpen = false, onToggle }) {
+  const [ownOpen, setOwnOpen] = useState(startOpen);
+
+  // When a parent passes onToggle it owns the open state, and this copy stays
+  // collapsed. Without that, the edit page's sticky bar expanded its own panel
+  // AND opened the sheet from the same click — two panels, one tap.
+  const open = onToggle ? false : ownOpen;
+  const toggle = onToggle || (() => setOwnOpen((o) => !o));
   const p = profile || {};
 
   const country = COUNTRY_BY_CODE[p.countryCode] || "";
@@ -31,9 +37,19 @@ function ProfilePanel({ profile, inCall = false, startOpen = false }) {
       <button
         type="button"
         className="pf-panel-toggle"
-        aria-label={open ? "hide their profile" : "see their profile"}
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
+        aria-label={
+          inCall
+            ? open
+              ? "hide their profile"
+              : "see their profile"
+            : "see how your profile looks"
+        }
+        onClick={toggle}
+        {...(onToggle
+          // This copy opens a dialog rather than expanding, so aria-expanded
+          // would be a lie — it is never true.
+          ? { "aria-haspopup": "dialog" }
+          : { "aria-expanded": open })}
       >
         <img
           className="pf-emoji"
