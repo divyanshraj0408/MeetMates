@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import "./login.css";
 import { renderGoogleButton } from "../googleAuth.js";
@@ -13,17 +13,12 @@ function Login({
   doBackDisplay,
   doLoginDisplay,
 }) {
-  const [withVideo, setWithVideo] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Google renders its button once and keeps the callback it was given, so a
-  // callback closing over `withVideo` would be frozen at its initial value.
-  // The ref is read at click time instead.
-  const withVideoRef = useRef(withVideo);
-  useEffect(() => {
-    withVideoRef.current = withVideo;
-  }, [withVideo]);
+  // Pingo is a video-chat app; every session starts with video on. The old
+  // opt-out checkbox is gone, so there is nothing left to read at click time.
+  const WITH_VIDEO = true;
 
   const handleGoogleResponse = async (response) => {
     setError("");
@@ -33,7 +28,7 @@ function Login({
         `${import.meta.env.VITE_BACKEND_URL}/api/auth/google-login`,
         {
           credential: response.credential,
-          withVideo: withVideoRef.current,
+          withVideo: WITH_VIDEO,
         },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -46,7 +41,7 @@ function Login({
 
       localStorage.setItem("token", token);
       setToken(token);
-      onStart(user.email, withVideoRef.current);
+      onStart(user.email, WITH_VIDEO);
     } catch (err) {
       console.error("Google login error:", err);
       setError(
@@ -62,7 +57,7 @@ function Login({
   useEffect(() => {
     return renderGoogleButton("google-signin-btn", CLIENT_ID, handleGoogleResponse);
     // Mounted once: the container is no longer conditionally rendered, and the
-    // callback reads withVideo through a ref rather than a closure.
+    // callback closes over nothing that changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -90,15 +85,6 @@ function Login({
             </p>
           )}
 
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={withVideo}
-              onChange={() => setWithVideo((on) => !on)}
-              disabled={loading}
-            />
-            <span className="checkbox-text">Enable video chat</span>
-          </label>
         </div>
       </div>
     </>
