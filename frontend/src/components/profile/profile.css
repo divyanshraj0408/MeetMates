@@ -95,6 +95,20 @@
   color: #fff;
 }
 
+/* A typed interest belongs to no group, so it gets the yellow — the one
+   palette colour that reads as "you wrote this" next to the suggested ones. */
+.pf-chip-typed.pf-chip-on {
+  background: #ffea00;
+  color: #0d0d0d;
+}
+
+/* The "+ your words" chip. Dashed says make a new one rather than pick an
+   existing one, which is the whole difference between it and its neighbours. */
+.pf-chip-add {
+  border-style: dashed;
+  background: #fffdf0;
+}
+
 .pf-input,
 .pf-select,
 .pf-bio {
@@ -510,7 +524,9 @@
 }
 
 /* Interests: an input with suggestions rather than seven labelled sections.
-   Groups still colour the chips; they are just no longer announced. */
+   The suggestions are a starting point, not the whole vocabulary — anything
+   typed can become a tag. Groups still colour the chips; they are just no
+   longer announced. */
 .pf-picked {
   margin-bottom: 12px;
 }

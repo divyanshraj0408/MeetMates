@@ -55,10 +55,39 @@ test("rejects an unknown gender", () => {
   assert.match(r.reason, /list/i);
 });
 
-test("rejects unknown interest slugs", () => {
-  const r = sanitizeProfileInput({ interests: ["cricket", "not-a-real-tag"] });
+test("accepts an interest that is not in the vocabulary", () => {
+  // The list is suggestions now. Typing your own thing is the feature.
+  const r = sanitizeProfileInput({ interests: ["cricket", "Lo-fi Beats"] });
+  assert.strictEqual(r.ok, true);
+  assert.deepStrictEqual(r.profile.interests, ["cricket", "lo-fi-beats"]);
+});
+
+test("normalizes a typed vocabulary word onto its existing slug", () => {
+  // Otherwise two people with the same interest would be stored differently
+  // depending on whether they tapped the suggestion or typed it out.
+  const r = sanitizeProfileInput({ interests: ["Music Production"] });
+  assert.deepStrictEqual(r.profile.interests, ["music-production"]);
+});
+
+test("drops tags that normalize to nothing instead of failing the save", () => {
+  const r = sanitizeProfileInput({ interests: ["chess", "!!!", "   ", "🔥"] });
+  assert.strictEqual(r.ok, true);
+  assert.deepStrictEqual(r.profile.interests, ["chess"]);
+});
+
+test("rejects a contact handle hidden in a typed interest", () => {
+  // A free-text tag is a text box a stranger reads. Same rule as the bio.
+  const r = sanitizeProfileInput({ interests: ["snapchat shreya04"] });
   assert.strictEqual(r.ok, false);
-  assert.match(r.reason, /don't know/i);
+  assert.match(r.reason, /social handle/);
+});
+
+test("does not read a handle into ordinary typed interests", () => {
+  // False positives are what make a filter hated. None of these are handles.
+  const r = sanitizeProfileInput({
+    interests: ["fb marketplace", "ig photography", "wa tourism"],
+  });
+  assert.strictEqual(r.ok, true, r.reason);
 });
 
 test("rejects more than eight interests", () => {
@@ -72,7 +101,11 @@ test("rejects more than eight interests", () => {
 });
 
 test("collapses duplicate interests rather than rejecting them", () => {
-  const r = sanitizeProfileInput({ interests: ["cricket", "cricket", "coding"] });
+  // Including duplicates that only look different before normalizing, which is
+  // now the common case: tap the "Cricket" suggestion, then type "cricket".
+  const r = sanitizeProfileInput({
+    interests: ["cricket", "cricket", "Cricket", " CRICKET ", "coding"],
+  });
   assert.strictEqual(r.ok, true);
   assert.deepStrictEqual(r.profile.interests, ["cricket", "coding"]);
 });

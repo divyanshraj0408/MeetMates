@@ -1,6 +1,11 @@
 // profileFields.js - the rules for a valid profile update, kept pure so they
 // can be tested without a database or a request.
-const { isKnownInterest, MAX_INTERESTS } = require("./interests.js");
+const {
+  isKnownInterest,
+  labelForInterest,
+  normalizeInterest,
+  MAX_INTERESTS,
+} = require("./interests.js");
 const { findContactHandle } = require("./contactHandles.js");
 const { isKnownCountryCode } = require("./countries.js");
 
@@ -69,13 +74,29 @@ function sanitizeProfileInput(input = {}) {
 
   if ("interests" in input) {
     const raw = Array.isArray(input.interests) ? input.interests : [];
-    // Duplicates are a UI slip, not a user error — collapse rather than reject.
-    const unique = [...new Set(raw.map((s) => String(s)))];
-    const unknown = unique.find((s) => !isKnownInterest(s));
-    if (unknown) return fail(`don't know what "${unknown}" is`);
+    // Anything can be an interest now, so this normalizes rather than rejects.
+    // Tags that slug down to nothing ("!!!", a lone emoji) are dropped, not
+    // failed: there is no useful thing to tell someone about a tag they cannot
+    // see they typed. Dedupe runs after normalizing, so "Cricket" and "cricket"
+    // collapse into one — duplicates are a UI slip, not a user error.
+    const unique = [...new Set(raw.map(normalizeInterest).filter(Boolean))];
     if (unique.length > MAX_INTERESTS) {
       return fail(`${MAX_INTERESTS} is the limit, pick your favourites`);
     }
+
+    // A typed tag is user-authored text a stranger reads, so it is a place to
+    // hide a handle — "insta shreya_04" is a perfectly good interest as far as
+    // the schema is concerned. Only the typed ones need checking; the built-in
+    // vocabulary is known-good. The AI gate runs in the route, since this
+    // function is pure and synchronous.
+    const typed = unique.filter((slug) => !isKnownInterest(slug));
+    const handle = findContactHandle(typed.map(labelForInterest).join(", "));
+    if (handle) {
+      return fail(
+        `take the ${handle} out of your interests — nobody can find you after a call, and that undoes it`
+      );
+    }
+
     profile.interests = unique;
   }
   // No `else`: an absent key means "unchanged", the same as every other field

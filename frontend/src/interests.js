@@ -1,9 +1,11 @@
 // interests.js - mirror of backend/interests.js. Kept in step by the parity
 // test in backend/interests.test.js. Edit the backend copy first.
 //
-// Fixed rather than free text: "music", "Music" and "listening to music" are
-// three strings and one interest, which makes matching guesswork and gives the
-// game mushy material to generate from.
+// Suggestions, not a whitelist: anyone can type their own interest. The reason
+// the list was closed before was that "music", "Music" and "listening to music"
+// are three strings and one interest, which makes matching guesswork. That is
+// now normalizeInterest's job instead — free text in, one canonical slug out,
+// and typing a word already in this list lands on that word's slug.
 //
 // Emoji are slugs on em-content.zobj.net/source/apple/419/, matching the
 // pattern already used in StartingPage.jsx. One per group, not per tag —
@@ -98,5 +100,36 @@ export const INTEREST_GROUPS = [
 export const INTEREST_SLUGS = INTEREST_GROUPS.flatMap((g) =>
   g.tags.map((t) => t.slug)
 );
+const LABEL_BY_SLUG = Object.fromEntries(
+  INTEREST_GROUPS.flatMap((g) => g.tags.map((t) => [t.slug, t.label]))
+);
 export const MAX_INTERESTS = 8;
+export const MAX_INTEREST_LENGTH = 24;
 export const EMOJI_BASE = "https://em-content.zobj.net/source/apple/419";
+
+// The two functions below are byte-identical to their backend twins on purpose.
+// The parity test compares them by exact string, so the frontend cannot start
+// slugging a word one way while the backend stores it another.
+
+// Free text in, one canonical slug out. "Lo-fi Beats", "lo fi beats" and
+// "  LO-FI  BEATS " all become "lo-fi-beats", so one interest typed three ways
+// is still one interest. Anything that is not a letter or a digit becomes the
+// separator, which means punctuation cannot be used to smuggle two tags into
+// one, and a stray emoji cannot become a tag on its own. \p{M} is in the keep
+// set because Devanagari matras are combining marks, not letters: without it
+// "शायरी" came out as "श-यर".
+export function normalizeInterest(input) {
+  return String(input || "")
+    .normalize("NFC")
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, MAX_INTEREST_LENGTH)
+    .replace(/-+$/, "");
+}
+
+// Slugs are what gets stored and matched on; this is what a human reads. A
+// custom slug has no stored label, so its hyphens go back to spaces.
+export function labelForInterest(slug) {
+  return LABEL_BY_SLUG[slug] || String(slug || "").replace(/-/g, " ");
+}

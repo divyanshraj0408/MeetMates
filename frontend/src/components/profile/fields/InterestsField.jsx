@@ -1,28 +1,17 @@
 import { useMemo, useState } from "react";
-import { INTEREST_GROUPS, MAX_INTERESTS } from "../../../interests.js";
-
-// Flatten the vocabulary. Groups still exist in the data — they drive chip
-// colour and the game's prompt generation — but they are no longer shown.
-// Seven labelled sections was more classification than picking a few tags needs.
-const ALL_TAGS = INTEREST_GROUPS.flatMap((g) =>
-  g.tags.map((t) => ({ ...t, group: g.key }))
-);
-const BY_SLUG = Object.fromEntries(ALL_TAGS.map((t) => [t.slug, t]));
-const MAX_SUGGESTIONS = 6;
+import { MAX_INTERESTS, labelForInterest } from "../../../interests.js";
+import { interestSuggest, TAG_BY_SLUG } from "./interestSuggest.js";
 
 function InterestsField({ value = [], onChange }) {
   const [query, setQuery] = useState("");
-  const full = value.length >= MAX_INTERESTS;
 
-  const suggestions = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return ALL_TAGS.filter(
-      (t) => !value.includes(t.slug) && (!q || t.label.toLowerCase().includes(q))
-    ).slice(0, MAX_SUGGESTIONS);
-  }, [query, value]);
+  const { suggestions, typed, canAddTyped, full } = useMemo(
+    () => interestSuggest(query, value),
+    [query, value]
+  );
 
   const add = (slug) => {
-    if (full || value.includes(slug)) return;
+    if (full || !slug || value.includes(slug)) return;
     onChange([...value, slug]);
     setQuery("");
   };
@@ -45,16 +34,16 @@ function InterestsField({ value = [], onChange }) {
       {value.length > 0 && (
         <div className="pf-chips pf-picked">
           {value.map((slug) => {
-            const tag = BY_SLUG[slug];
+            const tag = TAG_BY_SLUG[slug];
             return (
               <button
                 key={slug}
                 type="button"
-                className={`pf-chip pf-chip-${tag?.group || "other"} pf-chip-on`}
+                className={`pf-chip pf-chip-${tag?.group || "typed"} pf-chip-on`}
                 onClick={() => remove(slug)}
-                aria-label={`remove ${tag?.label || slug}`}
+                aria-label={`remove ${labelForInterest(slug)}`}
               >
-                {tag?.label || slug} <span className="pf-chip-x">×</span>
+                {labelForInterest(slug)} <span className="pf-chip-x">×</span>
               </button>
             );
           })}
@@ -63,19 +52,21 @@ function InterestsField({ value = [], onChange }) {
 
       <input
         className="pf-input"
-        placeholder={full ? "that's eight, nice" : "start typing — music, cricket, anime..."}
+        placeholder={full ? "that's eight, nice" : "type anything — shayari, lo-fi, chess..."}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
-            if (suggestions[0]) add(suggestions[0].slug);
+            // A suggestion wins over the raw text, so typing "cri" and hitting
+            // enter gives you "cricket" rather than a tag nobody else has.
+            add(suggestions[0]?.slug || typed);
           }
         }}
         disabled={full}
       />
 
-      {!full && suggestions.length > 0 && (
+      {!full && (suggestions.length > 0 || canAddTyped) && (
         <div className="pf-chips pf-suggest">
           {suggestions.map((tag) => (
             <button
@@ -87,11 +78,17 @@ function InterestsField({ value = [], onChange }) {
               {tag.label}
             </button>
           ))}
-        </div>
-      )}
 
-      {!full && query.trim() && suggestions.length === 0 && (
-        <p className="pf-hint">nothing matches that one</p>
+          {canAddTyped && (
+            <button
+              type="button"
+              className="pf-chip pf-chip-add"
+              onClick={() => add(typed)}
+            >
+              + {labelForInterest(typed)}
+            </button>
+          )}
+        </div>
       )}
     </>
   );

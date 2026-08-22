@@ -2,13 +2,18 @@
 const express = require("express");
 const { authMiddleware } = require("../middleware/auth.js");
 const { sanitizeProfileInput, AGE_BANDS, GENDERS } = require("../profileFields.js");
-const { INTEREST_GROUPS } = require("../interests.js");
+const {
+  INTEREST_GROUPS,
+  isKnownInterest,
+  labelForInterest,
+} = require("../interests.js");
 const { moderateMessage } = require("../moderation.js");
 
 const router = express.Router();
 
-// The vocabulary the picker renders. Public: it is a static list, and serving
-// it means the frontend cannot drift from what the backend will accept.
+// The suggestions the picker offers. Public: it is a static list. It no longer
+// bounds what the backend will accept — anything can be an interest — so this
+// is a starting point for the picker, not a contract.
 router.get("/options", (req, res) => {
   res.json({ ageBands: AGE_BANDS, genders: GENDERS, groups: INTEREST_GROUPS });
 });
@@ -45,6 +50,22 @@ router.put("/", authMiddleware, async (req, res) => {
       return res
         .status(400)
         .json({ error: "moderation didn't like that bio. try rewording it" });
+    }
+  }
+
+  // Interests are free text now, so a tag outside the vocabulary is the same
+  // kind of content as a bio and gets the same gate. Only the typed ones are
+  // sent, joined into a single string, so a full board of eight costs one Groq
+  // call rather than eight. Fails open, same as chat.
+  const typedTags = (result.profile.interests || []).filter(
+    (slug) => !isKnownInterest(slug)
+  );
+  if (typedTags.length > 0) {
+    const verdict = await moderateMessage(typedTags.map(labelForInterest).join(", "));
+    if (!verdict.ok) {
+      return res
+        .status(400)
+        .json({ error: "moderation didn't like one of those interests. try another word" });
     }
   }
 

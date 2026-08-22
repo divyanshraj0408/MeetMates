@@ -76,7 +76,7 @@ cd frontend && npm run build
 | `moderation.js` | Two-gate moderation: local word list, then Groq |
 | `globalchat.js` | Public room: 50-message RAM buffer, reactions, typing |
 | `pairchat.js` | 1:1 chat: validation, word-list gate, relayed reactions |
-| `interests.js` | The 35-tag interest vocabulary (source of truth) |
+| `interests.js` | Interest suggestions, slug normalization, labels (source of truth) |
 | `contactHandles.js` | Pure: detects handles/phones/emails in a bio |
 | `profileFields.js` | Pure: what a valid profile update is |
 | `models/User.js` | User + embedded `profile` |
@@ -140,10 +140,24 @@ claims are self-declared everywhere — this is the design where being lied to
 does least harm, since everyone is expected to be an adult rather than safety
 depending on segregating minors.
 
-**Interests are a fixed 35-tag vocabulary**, duplicated in
-`backend/interests.js` and `frontend/src/interests.js` with a parity test that
-reads the frontend file from disk and fails on drift. Free text would make
-matching guesswork.
+**Interests are free text with a 35-tag suggestion list.** Anyone can type
+their own; the list is what the picker offers first. Matching stays possible
+because `normalizeInterest` reduces free text to one canonical slug — "Lo-fi
+Beats", "lo fi beats" and "  LO-FI  BEATS " all become `lo-fi-beats`, and
+typing a word already in the list lands on that word's slug, so a typed
+"Cricket" matches a tapped one.
+
+The list and both helpers are duplicated in `backend/interests.js` and
+`frontend/src/interests.js`. Two parity tests guard them: one compares the
+slugs, and one asserts the frontend file contains the backend's
+`normalizeInterest` and `labelForInterest` **source text verbatim** — matching
+slugs is not enough when the two sides could slug the same typed word
+differently.
+
+Because a typed tag is user-authored text a stranger reads, it goes through
+the same two gates as a bio: `findContactHandle` in `sanitizeProfileInput`,
+then `moderateMessage` in the route. Vocabulary tags skip both — they are
+known-good — so a full board of eight custom tags costs one Groq call.
 
 ---
 

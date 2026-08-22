@@ -1,11 +1,7 @@
 import { useState } from "react";
-import { INTEREST_GROUPS, EMOJI_BASE } from "../../interests.js";
+import { EMOJI_BASE, labelForInterest } from "../../interests.js";
 import { COUNTRY_BY_CODE } from "../../countries.js";
 import "./profile.css";
-
-const LABELS = Object.fromEntries(
-  INTEREST_GROUPS.flatMap((g) => g.tags.map((t) => [t.slug, t.label]))
-);
 
 /**
  * The only thing a matched partner sees. Rendered in two places: over the
@@ -68,7 +64,7 @@ function ProfilePanel({ profile, inCall = false }) {
             <div className="pf-panel-tags">
               {tags.map((slug) => (
                 <span key={slug} className="pf-panel-tag">
-                  {LABELS[slug] || slug}
+                  {labelForInterest(slug)}
                 </span>
               ))}
             </div>

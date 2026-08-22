@@ -6,6 +6,9 @@ const {
   INTEREST_GROUPS,
   INTEREST_SLUGS,
   isKnownInterest,
+  labelForInterest,
+  normalizeInterest,
+  MAX_INTEREST_LENGTH,
 } = require("./interests");
 
 test("exposes thirty-five slugs across seven groups", () => {
@@ -28,11 +31,58 @@ test("every group has an emoji and a non-empty tag list", () => {
   }
 });
 
-test("isKnownInterest accepts real slugs and rejects anything else", () => {
+test("isKnownInterest tells vocabulary tags apart from typed ones", () => {
+  // It no longer gates writes; it decides which tags need moderating.
   assert.strictEqual(isKnownInterest("cricket"), true);
   assert.strictEqual(isKnownInterest("underwater-basket-weaving"), false);
   assert.strictEqual(isKnownInterest(""), false);
   assert.strictEqual(isKnownInterest(undefined), false);
+});
+
+test("normalizeInterest collapses the ways one interest gets typed", () => {
+  for (const typed of ["Lo-fi Beats", "lo fi beats", "  LO-FI  BEATS ", "lo_fi_beats"]) {
+    assert.strictEqual(normalizeInterest(typed), "lo-fi-beats", typed);
+  }
+});
+
+test("typing a vocabulary word lands on that word's slug", () => {
+  // The point of keeping the list: someone who types "Music production" gets
+  // the same slug as someone who tapped the suggestion, so they still match.
+  assert.strictEqual(normalizeInterest("Music production"), "music-production");
+  assert.strictEqual(normalizeInterest("Hip-Hop"), "hip-hop");
+  assert.strictEqual(normalizeInterest("K-Drama"), "k-drama");
+  for (const slug of INTEREST_SLUGS) {
+    assert.strictEqual(normalizeInterest(slug), slug, slug);
+  }
+});
+
+test("normalizeInterest keeps non-Latin scripts intact", () => {
+  assert.strictEqual(normalizeInterest("शायरी"), "शायरी");
+  assert.strictEqual(normalizeInterest("Café hopping"), "café-hopping");
+});
+
+test("normalizeInterest yields nothing from input with no letters or digits", () => {
+  // An empty slug is the caller's cue to drop the tag rather than store "".
+  for (const junk of ["", "   ", "!!!", "🔥🔥", "---", null, undefined]) {
+    assert.strictEqual(normalizeInterest(junk), "", JSON.stringify(junk));
+  }
+});
+
+test("normalizeInterest truncates without leaving a trailing separator", () => {
+  const long = "a".repeat(MAX_INTEREST_LENGTH + 10);
+  assert.strictEqual(normalizeInterest(long).length, MAX_INTEREST_LENGTH);
+
+  // Slicing can land mid-separator; the result must still be a clean slug.
+  const onBoundary = "abcdefghijklmnopqrstuvw more words here";
+  const out = normalizeInterest(onBoundary);
+  assert.strictEqual(out, "abcdefghijklmnopqrstuvw");
+  assert.ok(!out.endsWith("-"), out);
+});
+
+test("labelForInterest prefers the stored label and falls back to the slug", () => {
+  assert.strictEqual(labelForInterest("music-production"), "Music production");
+  assert.strictEqual(labelForInterest("lo-fi-beats"), "lo fi beats");
+  assert.strictEqual(labelForInterest(""), "");
 });
 
 test("the frontend mirror has exactly the same slugs", () => {
@@ -47,6 +97,21 @@ test("the frontend mirror has exactly the same slugs", () => {
     INTEREST_SLUGS.slice().sort(),
     "frontend/src/interests.js has drifted from backend/interests.js"
   );
+});
+
+test("the frontend mirror slugs interests with identical code", () => {
+  // Slugs matching is not enough here. If the frontend slugged "Lo-Fi" one way
+  // and the backend another, the client would show a chip the server then
+  // stored under a different key. Compare the function bodies themselves.
+  const mirrorPath = path.join(__dirname, "..", "frontend", "src", "interests.js");
+  const source = fs.readFileSync(mirrorPath, "utf8");
+
+  for (const fn of [normalizeInterest, labelForInterest]) {
+    assert.ok(
+      source.includes(fn.toString()),
+      `frontend/src/interests.js ${fn.name} has drifted from backend/interests.js`
+    );
+  }
 });
 
 const { COUNTRY_CODES } = require("./countries");
