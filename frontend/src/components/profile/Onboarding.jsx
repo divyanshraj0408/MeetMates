@@ -49,7 +49,7 @@ function Onboarding({ onDone }) {
   // The gate is the only screen that blocks.
   if (step === 0) {
     return (
-      <div className="pf-page">
+      <div className="pf-page pf-page-fixed">
         <div className="pf-step">
           <div className="pf-progress" />
           <h1 className="pf-prompt">
@@ -85,7 +85,7 @@ function Onboarding({ onDone }) {
 
   if (step === 6) {
     return (
-      <div className="pf-page">
+      <div className="pf-page pf-page-fixed">
         <div className="pf-step">
           <div className="pf-progress" />
           <h1 className="pf-prompt">that's you</h1>
@@ -117,7 +117,7 @@ function Onboarding({ onDone }) {
   const isLast = step === CONTENT_STEPS;
 
   return (
-    <div className="pf-page">
+    <div className="pf-page pf-page-fixed">
       <div className="pf-step">
         <ProgressBar total={CONTENT_STEPS} done={step - 1} />
         <h1 className="pf-prompt">{current.prompt}</h1>

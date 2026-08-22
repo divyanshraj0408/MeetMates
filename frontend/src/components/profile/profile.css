@@ -1,17 +1,25 @@
 /* Every selector is pf- prefixed. Unscoped component class names leaked between
    pages in this app once and cost days to unpick. */
 
+/* The edit page scrolls as a page: the sticky bar it used to pin is gone, so
+   an inner scroll region only bought a scrollbar floating at the inner
+   container's edge, mid-screen, instead of the window edge where people expect
+   one. Onboarding still needs the fixed variant below, because its back/next
+   nav has to stay put. */
 .pf-page {
-  /* height, not min-height: with min-height this box is free to grow past the
-     viewport, so `flex: 1` children grow with it and the scroll region below
-     never overflows — the page scrolls instead of the list. Measured at 1012px
-     of page growth before this changed. */
-  height: 100dvh;
-  overflow: hidden;
+  min-height: 100dvh;
   background: linear-gradient(to bottom right, #00c6ff, #0072ff);
   display: flex;
   flex-direction: column;
   color: #0d0d0d; /* own your colour: a surface that inherits goes black-on-black */
+}
+
+/* Onboarding: a fixed viewport with one scrolling region inside it. height,
+   not min-height — with min-height this box grows past the viewport, its
+   flex:1 children grow with it, and .pf-step-body never overflows. */
+.pf-page-fixed {
+  height: 100dvh;
+  overflow: hidden;
 }
 
 /* ---------- shared controls ---------- */
@@ -238,6 +246,21 @@
   min-height: 0;
   overflow-y: auto;
   padding-bottom: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+}
+
+.pf-step-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pf-step-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pf-step-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
 }
 
 .pf-step-nav {
@@ -310,19 +333,13 @@
 
 .pf-edit {
   flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
   max-width: 620px;
   width: 100%;
   margin-inline: auto;
 }
 
 .pf-edit-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 20px 18px 24px;
+  padding: 20px 18px 40px;
 }
 
 .pf-edit-title {
