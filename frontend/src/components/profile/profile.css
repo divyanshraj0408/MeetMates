@@ -2,7 +2,12 @@
    pages in this app once and cost days to unpick. */
 
 .pf-page {
-  min-height: 100dvh;
+  /* height, not min-height: with min-height this box is free to grow past the
+     viewport, so `flex: 1` children grow with it and the scroll region below
+     never overflows — the page scrolls instead of the list. Measured at 1012px
+     of page growth before this changed. */
+  height: 100dvh;
+  overflow: hidden;
   background: linear-gradient(to bottom right, #00c6ff, #0072ff);
   display: flex;
   flex-direction: column;
