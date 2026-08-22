@@ -152,6 +152,15 @@ let authenticatedUsers = new Map();
 // What each waiting socket asked for, and the two profile fields matching is
 // allowed to know about them. Both are keyed by socket id and cleared on
 // disconnect. Filters are a session choice and are never persisted.
+// Two filter maps, deliberately. chosenFilters is what the user picked and only
+// findChat writes it. waitingFilters is what matching actually runs on, and the
+// relax timer and widenSearch rewrite it as one search wears on.
+//
+// Collapsing them made relaxation permanent: fifteen seconds of bad luck, then
+// every later "next" in that session silently kept the widened filter while the
+// chips on screen still showed the original. A filter the UI and the server
+// disagree about is the worst thing this feature could ship.
+const chosenFilters = new Map();
 const waitingFilters = new Map();
 const waitingAttrs = new Map();
 
@@ -204,20 +213,30 @@ io.on("connection", (socket) => {
       cleanupChatPair(socket.id);
     }
 
-    waitingFilters.set(socket.id, sanitizeFilters(filters));
+    // What the user actually picked, kept apart from the filters matching runs
+    // on. Relaxing and widening rewrite the active copy; this one stays put, so
+    // re-entering the queue restores the choice the chips still display.
+    chosenFilters.set(socket.id, sanitizeFilters(filters));
 
     // One read per queue entry. Failure is non-fatal: empty attributes are
     // wildcards, so a database hiccup widens the match rather than blocking it.
     const profile = await visibleProfileFor(socket).catch(() => null);
-    waitingAttrs.set(socket.id, buildMatchAttrs(profile));
 
     // The socket can disconnect during the await, and a second findChat that
     // started before this one can have paired it in the meantime. Before the
     // handler was async neither could happen between the check above and the
     // push below; now both can. Re-queueing an already-paired socket lets
     // matchUsers pair it twice, which silently orphans the first partner.
+    //
+    // Nothing may write per-socket state above this line: disconnect cleanup
+    // can run during the await, and a write after it resurrects the entry it
+    // just deleted. waitingAttrs leaked exactly one entry per abandoned search
+    // that way, which is most of them when the database is slow enough to make
+    // people give up.
     if (!io.sockets.sockets.get(socket.id)) return;
     if (chatPairs[socket.id]) return;
+
+    waitingAttrs.set(socket.id, buildMatchAttrs(profile));
 
     waitingUsers = waitingUsers.filter((id) => id !== socket.id);
     enqueue(socket.id);
@@ -299,6 +318,11 @@ io.on("connection", (socket) => {
   // The user asked to widen the search themselves. This is the only thing that
   // clears a gender filter — nothing on the server does it behind their back.
   socket.on("widenSearch", () => {
+    // Queue membership, not map membership. waitingFilters deliberately
+    // outlives pairing, so testing it let a socket already in a call widen a
+    // search it was not running and get a searchWidened event for it.
+    if (!waitingUsers.includes(socket.id)) return;
+
     const current = waitingFilters.get(socket.id);
     if (!current) return;
 
@@ -355,6 +379,7 @@ io.on("connection", (socket) => {
     rtcReadyUsers.delete(socket.id);
     nextCooldownUsers.delete(socket.id);
     clearRelaxTimer(socket.id);
+    chosenFilters.delete(socket.id);
     waitingFilters.delete(socket.id);
     waitingAttrs.delete(socket.id);
 
@@ -403,6 +428,13 @@ function cleanupChatPair(socketId) {
 // Every route into the waiting queue goes through here, so nobody can be left
 // waiting without a timer attached.
 function enqueue(socketId) {
+  // Every entry into the queue is a fresh search, so it starts from what the
+  // user chose rather than from however far the last search had been widened.
+  // This runs for the person who pressed next AND for the partner the server
+  // requeues without them touching anything.
+  const chosen = chosenFilters.get(socketId);
+  if (chosen) waitingFilters.set(socketId, { ...chosen });
+
   if (!waitingUsers.includes(socketId)) waitingUsers.push(socketId);
   startRelaxTimer(socketId);
 }
