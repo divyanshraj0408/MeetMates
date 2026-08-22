@@ -99,6 +99,11 @@ function App() {
       setCurrentScreen("waiting");
       setCurrentPartnerId(null);
       setIsVideoChat(false);
+      // The server puts people back in the queue who pressed nothing — when a
+      // partner leaves or hits next, this fires for the person left behind. So
+      // clearing the notice in the click handlers is not enough: it describes
+      // the previous search, and they are now in a new one.
+      setSearchWidened(null);
     });
 
     socket.on("chatStart", (data) => {
