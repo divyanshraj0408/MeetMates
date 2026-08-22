@@ -14,6 +14,32 @@ const profileRoutes = require("./routes/profile.js");
 const { authMiddleware, optionalAuth } = require("./middleware/auth.js");
 const { registerGlobalChat } = require("./globalchat.js");
 const { registerPairChat } = require("./pairchat.js");
+const UserModel = require("./models/User.js");
+const { resolveGlobalSender } = require("./socketIdentity.js");
+
+// The profile a partner is allowed to see. Explicitly built field by field
+// rather than spread from the document: a spread here is how name, email and
+// googleId would quietly reach a stranger.
+async function visibleProfileFor(socket) {
+  try {
+    const email = await resolveGlobalSender(socket);
+    if (!email) return null;
+    const user = await UserModel.findOne({ email }).select("profile");
+    const p = user?.profile;
+    if (!p) return null;
+    return {
+      ageBand: p.ageBand || "",
+      country: p.country || "",
+      region: p.region || "",
+      gender: p.gender || "",
+      interests: p.interests || [],
+      bio: p.bio || "",
+    };
+  } catch (err) {
+    console.error("Failed to load partner profile:", err.message);
+    return null;
+  }
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -409,6 +435,15 @@ function createChatPair(user1, user2, withVideo) {
   console.log(
     `Matched ${user1Info?.email || user1} and ${user2Info?.email || user2} in room ${roomId}, video: ${withVideo}`
   );
+
+  // Each side gets the other's profile. Failure is non-fatal: a call with no
+  // profile panel is fine, a call that never starts is not.
+  Promise.all([visibleProfileFor(socket1), visibleProfileFor(socket2)])
+    .then(([p1, p2]) => {
+      if (p2) socket1.emit("partnerProfile", p2);
+      if (p1) socket2.emit("partnerProfile", p1);
+    })
+    .catch((err) => console.error("partnerProfile emit failed:", err.message));
 }
 
 const PORT = process.env.PORT || 3001;
