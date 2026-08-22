@@ -334,7 +334,7 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
           >
             Pass {">"}
           </button>
-          <ProfilePanel profile={partnerProfile} />
+          <ProfilePanel profile={partnerProfile} inCall />
         </div>
 
         <div>

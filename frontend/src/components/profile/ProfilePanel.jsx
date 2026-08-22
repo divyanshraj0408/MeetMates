@@ -1,23 +1,33 @@
 import { useState } from "react";
 import { INTEREST_GROUPS, EMOJI_BASE } from "../../interests.js";
+import { COUNTRY_BY_CODE } from "../../countries.js";
 import "./profile.css";
 
 const LABELS = Object.fromEntries(
   INTEREST_GROUPS.flatMap((g) => g.tags.map((t) => [t.slug, t.label]))
 );
 
-function ProfilePanel({ profile }) {
-  const [open, setOpen] = useState(false);
-  if (!profile) return null;
+/**
+ * The only thing a matched partner sees. Rendered in two places: over the
+ * partner's video during a call, and as the live preview on the edit screen —
+ * the same component in both, so the preview cannot show something the partner
+ * would not.
+ */
+function ProfilePanel({ profile, inCall = false, startOpen = false }) {
+  const [open, setOpen] = useState(startOpen);
+  const p = profile || {};
 
-  const place = [profile.region, profile.country].filter(Boolean).join(", ");
-  const hasAnything =
-    profile.ageBand || place || profile.gender || profile.bio ||
-    (profile.interests && profile.interests.length > 0);
-  if (!hasAnything) return null;
+  const country = COUNTRY_BY_CODE[p.countryCode] || "";
+  const place = [p.city, country].filter(Boolean).join(", ");
+  const tags = p.interests || [];
+  const hasAnything = p.ageBand || place || p.gender || p.bio || tags.length > 0;
+
+  // In a call an empty profile shows nothing at all. On the edit screen the
+  // empty state is the point — it is what the user is being warned about.
+  if (inCall && !hasAnything) return null;
 
   return (
-    <div className={`pf-panel ${open ? "pf-panel-open" : ""}`}>
+    <div className={`pf-panel ${inCall ? "pf-panel-incall" : ""}`}>
       <button
         type="button"
         className="pf-panel-toggle"
@@ -29,28 +39,36 @@ function ProfilePanel({ profile }) {
           src={`${EMOJI_BASE}/identification-card_1faaa.png`}
           alt=""
         />
-        {open ? "Hide" : "Who's this?"}
+        {open ? "hide" : "who's this?"}
       </button>
 
       {open && (
         <div className="pf-panel-body">
-          <div className="pf-panel-facts">
-            {profile.ageBand && <span className="pf-fact">{profile.ageBand}</span>}
-            {place && <span className="pf-fact">{place}</span>}
-            {profile.gender && <span className="pf-fact">{profile.gender}</span>}
-          </div>
+          {!hasAnything && (
+            <p className="pf-panel-empty">
+              nothing here yet. they'd just see a blank card.
+            </p>
+          )}
 
-          {profile.interests?.length > 0 && (
-            <div className="pf-chips">
-              {profile.interests.map((slug) => (
-                <span key={slug} className="pf-chip pf-chip-static">
+          {(p.ageBand || place || p.gender) && (
+            <div className="pf-panel-facts">
+              {p.ageBand && <span className="pf-fact">{p.ageBand}</span>}
+              {place && <span className="pf-fact">{place}</span>}
+              {p.gender && <span className="pf-fact">{p.gender}</span>}
+            </div>
+          )}
+
+          {tags.length > 0 && (
+            <div className="pf-panel-tags">
+              {tags.map((slug) => (
+                <span key={slug} className="pf-panel-tag">
                   {LABELS[slug] || slug}
                 </span>
               ))}
             </div>
           )}
 
-          {profile.bio && <p className="pf-panel-bio">{profile.bio}</p>}
+          {p.bio && <p className="pf-panel-bio">{p.bio}</p>}
         </div>
       )}
     </div>
