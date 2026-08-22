@@ -10,7 +10,6 @@ const jwt = require("jsonwebtoken");
 dotenv.config();
 
 const authRoutes = require("./routes/auth.js");
-const imageAuthRoute = require("./routes/imageAuth.js");
 const { authMiddleware, optionalAuth } = require("./middleware/auth.js");
 const { registerGlobalChat } = require("./globalchat.js");
 const { registerPairChat } = require("./pairchat.js");
@@ -45,7 +44,6 @@ mongoose
   .catch((err) => console.error("MongoDB connection error:", err));
 
 app.use("/api/auth", authRoutes);
-app.use("/api/auth", imageAuthRoute);
 
 app.get("/api/profile", authMiddleware, (req, res) => {
   res.json({

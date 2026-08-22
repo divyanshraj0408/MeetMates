@@ -1,7 +1,6 @@
 // models/User.js - Updated User Schema with Google Auth support
 
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -11,13 +10,10 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
+  // Retained so documents created before Google-only auth stay readable.
+  // Nothing writes it any more — there is no password login.
   password: {
     type: String,
-    required: function() {
-      // Password is required only if user is not a Google user
-      return !this.isGoogleUser;
-    },
-    minlength: 6
   },
   name: {
     type: String,
@@ -60,29 +56,6 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   }
 });
-
-// Hash password before saving (only for non-Google users)
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password') || !this.password) {
-    return next();
-  }
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Method to compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  if (!this.password) {
-    return false; // Google users don't have passwords
-  }
-  return await bcrypt.compare(candidatePassword, this.password);
-};
 
 // Method to update last login
 userSchema.methods.updateLastLogin = function() {
