@@ -147,6 +147,14 @@
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);  /* soft shadow */
 }
 
+/* The Pass button sits inside the rounded controls pill, so the 6px-radius
+   rectangle it inherits from .next-button in chatroom.css reads as a card
+   dropped into it. 999px keeps it a true pill at any height, matching the
+   circular buttons beside it and the pill's own rounded boundary. */
+.video-controls .next-button {
+  border-radius: 999px;
+}
+
 .control-btn {
   /* background-color: var(--primary); */
   background-color: transparent;
@@ -370,6 +378,13 @@
 
   .video-grid > .video-controls { /* controls row — a static row now, not a PiP overlay */
     position: static;
+    /* transform applies to statically positioned elements too, so the desktop
+       translateX(-50%) survived `position: static` and dragged the whole row
+       half its width off the left edge — mic and camera were unreachable.
+       left and max-width are inert here but reset for the same reason. */
+    transform: none;
+    left: auto;
+    max-width: none;
     order: 3;
     flex: 0 0 auto;
     height: var(--vc-controls-h);
