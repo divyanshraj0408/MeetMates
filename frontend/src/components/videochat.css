@@ -95,8 +95,14 @@
     order: 3;
     /* Real height (was max-height: 40%; min-height: 200px) — the PiP anchor
        above is calculated against this exact value, so it has to be a fixed
-       height, not a range. */
+       height, not a range.
+       min-height and max-height MUST be reset here. The desktop rule for this
+       same element sets min-height: 100% outside any media query, so it still
+       applies at this width and beats `height` — the bottom region took the
+       whole grid and the video collapsed to 8px tall. */
     height: var(--vc-bottom-h);
+    min-height: 0;
+    max-height: none;
     width: 100%;
   }
 
