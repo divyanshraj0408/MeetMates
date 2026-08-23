@@ -69,16 +69,30 @@
    the remote column's share of the grid is (100% - 15px) * 1.4 / (1.4 + 1). */
 .video-grid > .video-controls {
   position: absolute;
-  left: 0;
+  /* Anchored to the CENTRE of the remote column, not stretched across it.
+     It used to be left:0 with width set to the whole column — and the base
+     rule's margin:15px still applied on top, so the pill rendered 30px wider
+     than the video it belongs to and spilled onto the page background. */
+  left: calc((100% - 15px) * 1.4 / 2.4 / 2);
+  transform: translateX(-50%);
   bottom: 20px;
-  width: calc((100% - 15px) * 1.4 / 2.4);
+  width: auto;
+  /* Never wider than the video, however many controls end up in here. */
+  max-width: calc((100% - 15px) * 1.4 / 2.4 - 24px);
+  margin: 0;
   display: flex;
   z-index: 10;
 }
 
-.hide-video-btn{
+/* Compound selector on purpose: .control-btn is declared later in this file
+   and would otherwise win the width at equal specificity, flattening this
+   back to a circle. */
+.control-btn.hide-video-btn {
+  /* Wider than the circles on purpose — ending the call should not look like
+     the same weight of action as muting. Same height, so the row stays level. */
   width: 60px;
-  border-radius: 20px !important;
+  height: 44px;
+  border-radius: 22px !important;
   background-color: #FF1F23 !important;
   border: 1px solid #36353533 !important;
   cursor: pointer;
@@ -122,7 +136,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 15px;
+  gap: 10px;
+  padding: 8px 12px;
   margin: 15px;
   background: rgba(255, 255, 255, 0.1); /* semi-transparent background */
   border-radius: 32px;                  /* rounded corners */
@@ -141,7 +156,18 @@
   /* padding: 16px 16px; */
   /* font-size: 1rem; */
   transition: transform 0.2s, box-shadow 0.2s;
-  margin: 8px;
+  /* Sizing lives here, not in inline styles on three of the four buttons.
+     The hangup button had no inline size, so it picked up width:60px from
+     .hide-video-btn with no height at all and collapsed to content height —
+     visibly shorter than the circles beside it. */
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(255, 255, 255, 0.18); /* semi-transparent background */
   border-radius: 32px;                  /* rounded corners */
   backdrop-filter: blur(10px);         /* blur the background behind */
@@ -350,9 +376,9 @@
     min-height: 0;
     max-height: none;
     width: 100%;
-    gap: 0;
+    gap: 10px;
     margin: 0;
-    padding: 0;
+    padding: 0 10px;
   }
 
   .video-controls .next-button {

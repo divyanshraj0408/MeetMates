@@ -253,6 +253,8 @@ function StartPage({
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
+                  // Mirrored to match the in-call self view.
+                  transform: "scaleX(-1)",
                   borderRadius: "10px",
                 }}
               />

@@ -438,7 +438,10 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
             autoPlay
             playsInline
             muted
-            style={{ transform: "none" }}
+            /* Mirrored, like every self-view. Unmirrored, raising your
+               right hand moves it to the wrong side of the frame and you
+               correct the wrong way. The partner still sees you unflipped. */
+            style={{ transform: "scaleX(-1)" }}
           />
           <div className="video-label">You</div>
         </div>
@@ -451,7 +454,6 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
           <button
             className={`control-btn ${isMuted ? "control-off" : ""}`}
             onClick={toggleMute}
-            style={{ padding: 0, width: "36px", height: "36px" }}
           >
             {isMuted
               ? <MicOff size={iconSize} strokeWidth={1.2} />
@@ -460,7 +462,6 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
           <button
             className={`control-btn ${isCameraOff ? "control-off" : ""}`}
             onClick={toggleCamera}
-            style={{ padding: 0, width: "36px", height: "36px" }}
           >
             {isCameraOff
               ? <VideoOff size={iconSize} strokeWidth={1.2} />
@@ -469,7 +470,6 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
           <button
             className="control-btn"
             onClick={startGame}
-            style={{ padding: 0, width: "36px", height: "36px" }}
             aria-label="never have i ever"
           >
             <img
