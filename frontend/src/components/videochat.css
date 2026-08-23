@@ -14,6 +14,16 @@
   margin-inline: auto;
 }
 
+/* ============================= Desktop (default) =========================
+   Everything in this section applies at every width unless overridden inside
+   the @media (max-width: 768px) block at the bottom of this file. That block
+   is placed LAST on purpose: two elements below (.text-chat-section and,
+   now, .video-controls) carry min-height/max-height/position rules here that
+   would otherwise out-specificity or out-order a same-specificity mobile
+   rule declared earlier in the file. Keeping exactly one mobile block, after
+   everything it overrides, means mobile wins on source order alone — no
+   !important hacks required. */
+
 .video-grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
@@ -22,115 +32,56 @@
   /* The grid is the container's only child, so it simply fills it. */
   flex: 1 1 auto;
   min-height: 0;
+  /* Needed on desktop too: .video-controls is positioned absolutely over
+     the remote video below, and it resolves against the nearest positioned
+     ancestor, which is this grid. */
+  position: relative;
   /* Not align-items:start — that let the local tile shrink to its content
      (162px tall at every width, however wide the column got) instead of
      filling its row. Stretching splits column 2 evenly: camera above,
      chat below. */
 }
 
-.video-grid > :first-child {
+.video-grid .remote-video {
   grid-row: 1 / span 2;
   grid-column: 1 / 2;
   height: 100%;
 }
 
-.video-grid > :nth-child(2) {
+.video-grid .local-video {
   grid-row: 1 / 2;
   grid-column: 2 / 3;
-  /* max-height: 40%; */
 }
 
-.video-grid > :nth-child(3) {
+.video-grid .text-chat-section {
   grid-row: 2 / 3;
   grid-column: 2 / 3;
-  
+
   max-height: 100%;
   min-height: 100%;
 }
+
+/* The controls row is a fourth grid child, but position:absolute takes it
+   out of grid flow entirely (it is never auto-placed into a template cell).
+   It sits over the bottom-centre of the remote video specifically, not the
+   whole grid, so its width has to match the remote column's width exactly:
+   grid-template-columns is "1.4fr 1fr" with one 15px gap between them, so
+   the remote column's share of the grid is (100% - 15px) * 1.4 / (1.4 + 1). */
+.video-grid > .video-controls {
+  position: absolute;
+  left: 0;
+  bottom: 20px;
+  width: calc((100% - 15px) * 1.4 / 2.4);
+  display: flex;
+  z-index: 10;
+}
+
 .hide-video-btn{
   width: 60px;
   border-radius: 20px !important;
   background-color: #FF1F23 !important;
   border: 1px solid #36353533 !important;
   cursor: pointer;
-}
-@media (max-width: 768px) {
-  .video-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    height: 100%;
-    /* Single source of truth for where the bottom region (chat/game) starts.
-       The PiP unit below anchors off this same variable instead of a
-       hardcoded guess, so the two cannot drift apart again. */
-    position: relative;
-    --vc-bottom-h: 46vh;
-  }
-
-  .video-grid > :first-child { /* remote video */
-    width: 100%;
-    flex: 1;
-    order: 1;
-    position: relative;
-  }
-
-  .video-grid > :nth-child(2) { /* local video + controls (PiP unit) */
-    position: absolute;
-    /* Anchored to the top edge of the bottom region (--vc-bottom-h) plus a
-       12px gap, rather than a hardcoded bottom offset guessed against the
-       wrong ancestor. Bottom-left corner of the remote video box, so it no
-       longer collides with the "Pass >" button in the bottom-right corner. */
-    bottom: calc(var(--vc-bottom-h) + 12px);
-    left: 12px;
-    width: 40%;
-    height: auto;
-    max-width: 150px;
-    z-index: 10;
-    border: 2px solid white;
-    border-radius: 8px;
-    order: 2;
-  }
-
-  .video-grid > :nth-child(3) { /* chat/game bottom region */
-    order: 3;
-    /* Real height (was max-height: 40%; min-height: 200px) — the PiP anchor
-       above is calculated against this exact value, so it has to be a fixed
-       height, not a range.
-       min-height and max-height MUST be reset here. The desktop rule for this
-       same element sets min-height: 100% outside any media query, so it still
-       applies at this width and beats `height` — the bottom region took the
-       whole grid and the video collapsed to 8px tall. */
-    height: var(--vc-bottom-h);
-    min-height: 0;
-    max-height: none;
-    width: 100%;
-  }
-
-  .video-box video {
-    object-fit: cover;
-  }
-
-  .video-box.local-video {
-    height: auto;
-  }
-  /* .hide-video-btn{
-    display: none;
-  } */
-  .video-controls {
-    display: flex;
-    gap: 0px !important;
-    margin: 0px !important;
-    padding: 0px;
-    margin-bottom: -10px !important;
-    
-  }
-  .control-btn{
-    margin: 1px !important;
-  }
-  .video-label{
-    top: 10px;
-    bottom: none;
-  }
 }
 
 .video-box {
@@ -164,17 +115,16 @@
   font-size: 0.9rem;
 }
 
+/* Visual chrome for the controls row only — position is set separately
+   above (desktop) and inside the mobile block, since the two widths need
+   very different placement strategies. */
 .video-controls {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 15px;
   margin: 15px;
-   position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  /* margin: 15px; */
-    background: rgba(255, 255, 255, 0.1); /* semi-transparent background */
+  background: rgba(255, 255, 255, 0.1); /* semi-transparent background */
   border-radius: 32px;                  /* rounded corners */
   backdrop-filter: blur(10px);         /* blur the background behind */
   -webkit-backdrop-filter: blur(10px); /* for Safari */
@@ -229,12 +179,11 @@
   min-height: 0;
 }
 
-/* Chat/Game tab bar for the bottom region — only rendered (in JS) while a
-   round is live, so on every other call the bottom region is plain chat with
-   no tab chrome. Unlike .pane-tabs in startpage.css this is not hidden on
-   desktop: the game panel lives in the same bottom-right grid cell as chat
-   on desktop too, so the tabs are the only way to switch between them there.
-   Same look as .pane-tab, vc- prefixed to stay out of that page's scope. */
+/* Chat/Game tab bar for the bottom region. Always rendered now — on mobile
+   it doubles as the sheet's collapse/expand handle (see the mobile block),
+   so it can never be entirely absent the way it briefly was pre-sheet. The
+   Game tab itself still only exists while a round is starting/live. Same
+   look as .pane-tab, vc- prefixed to stay out of that page's scope. */
 .vc-tabs {
   display: flex;
   gap: 8px;
@@ -243,6 +192,7 @@
 }
 
 .vc-tab {
+  position: relative;
   flex: 1;
   padding: 8px;
   border: none;
@@ -258,6 +208,21 @@
   background: #0099ff;
 }
 
+/* Dot for an unseen chat message that arrived while the chat pane wasn't
+   visible (sheet collapsed, or the Game pane showing). Cleared the moment
+   the chat pane becomes visible again — see isChatPaneVisible in
+   VideoChat.jsx. */
+.vc-tab-dot {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff5ca2;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
 /* Both the chat pane and the game pane are always mounted (see VideoChat.jsx)
    — only display is toggled here. Unmounting chat would drop its scroll
    position; unmounting the game would unregister its socket listeners. */
@@ -271,10 +236,6 @@
 .vc-pane-active {
   display: flex;
 }
-
-
-
-
 
 /* Add this to your CSS file */
 .typing-indicator {
@@ -322,14 +283,126 @@
   }
 }
 
-
-
-
-
-
-
-/* Responsive Adjustments */
+/* ============================== Mobile ====================================
+   One media query, placed after every rule above it overrides, so mobile
+   wins on source order without needing !important. */
 @media (max-width: 768px) {
+  .video-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    height: 100%;
+    position: relative;
+
+    /* Single source of truth for the two fixed-size regions stacked below
+       the remote video. The PiP thumbnail's anchor (on .local-video below)
+       is derived from these same two variables instead of a hardcoded
+       guess, so the three pieces cannot drift apart again. */
+    --vc-controls-h: 60px;
+    --vc-sheet-h: 48px; /* collapsed: tab bar only */
+  }
+
+  .video-grid.vc-sheet-open {
+    --vc-sheet-h: 46vh;
+  }
+
+  .video-grid .remote-video { /* remote video */
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    order: 1;
+    position: relative;
+    /* Reset the desktop grid placement — flex governs layout here. */
+    height: auto;
+  }
+
+  .video-grid .local-video { /* PiP thumbnail — no controls inside it now */
+    position: absolute;
+    /* Anchored off the same two variables that size the controls row and
+       the sheet, so it can't get out of sync with either again:
+         --vc-sheet-h        (the sheet's own height)
+       + --vc-controls-h     (the controls row's own height)
+       + 15px + 15px         (the two flex `gap: 15px` on .video-grid,
+                               between remote/controls and controls/sheet)
+       + 12px                (inset from the remote video's bottom edge)
+       = calc(sheet + controls + 42px). This keeps the PiP's bottom edge a
+       constant 12px above the top of the controls row, in both the
+       collapsed and expanded state, since --vc-sheet-h cancels out of that
+       relationship. */
+    bottom: calc(var(--vc-sheet-h) + var(--vc-controls-h) + 42px);
+    left: 12px;
+    width: 100px;
+    max-width: 100px;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    z-index: 10;
+    border: 2px solid white;
+    border-radius: 8px;
+    order: 2;
+  }
+
+  .video-grid > .video-controls { /* controls row — a static row now, not a PiP overlay */
+    position: static;
+    order: 3;
+    flex: 0 0 auto;
+    height: var(--vc-controls-h);
+    min-height: 0;
+    max-height: none;
+    width: 100%;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .video-controls .next-button {
+    /* Shares the row with three 36px circular buttons on a ~340px-wide
+       strip — the desktop size (150x50) doesn't fit. */
+    width: auto;
+    height: 44px;
+    padding: 0 14px;
+    font-size: 0.9rem;
+    margin: 1px;
+  }
+
+  .control-btn {
+    margin: 1px;
+  }
+
+  .video-grid .text-chat-section { /* chat/game sheet */
+    order: 4;
+    /* Real height (was max-height: 40%; min-height: 200px) — the PiP anchor
+       above is calculated against this exact value, so it has to be a fixed
+       height, not a range.
+       min-height and max-height MUST be reset here. The desktop rule for
+       this same element sets min-height: 100% / max-height: 100% outside
+       this media query, so it still applies at this width and beats
+       `height` if left unset — the sheet took the whole grid and the video
+       collapsed to a sliver. */
+    height: var(--vc-sheet-h);
+    min-height: 0;
+    max-height: none;
+    width: 100%;
+    transition: height 0.2s ease;
+  }
+
+  /* Collapsed = tab bar only. Without this, flex would still hand the pane
+     the few leftover pixels under --vc-sheet-h (48px minus the tab bar's own
+     height) and render a clipped sliver of chat/game content under the
+     tabs instead of nothing. */
+  .video-grid:not(.vc-sheet-open) .vc-pane-active {
+    display: none;
+  }
+
+  .video-box video {
+    object-fit: cover;
+  }
+
+  .video-label {
+    top: 10px;
+    bottom: none;
+  }
+
   .login-card,
   .waiting-card {
     padding: 25px;
@@ -338,5 +411,4 @@
   .chat-header h2 {
     font-size: 1.2rem;
   }
-
 }

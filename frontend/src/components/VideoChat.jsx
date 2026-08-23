@@ -36,14 +36,26 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
   const [callTab, setCallTab] = useState("chat");
   const showGameTab = gameStarting || gameLive;
 
+  // The bottom region is a collapsible sheet on mobile (always full-height on
+  // desktop — see videochat.css). Starts collapsed so the video gets the
+  // screen by default; the tab bar is the handle that opens it.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // Dot on the Chat tab when a partner message arrives while the chat pane
+  // isn't the visible one (sheet collapsed, or the Game pane is showing).
+  const [chatHasUnseen, setChatHasUnseen] = useState(false);
+  const isChatPaneVisible = sheetOpen && callTab === "chat";
+
   // Auto-switch to the Game tab the moment a round arrives. This is required
   // for the partner: they never pressed start, so gameStarting is false on
   // their screen — without this effect they'd have no reason to notice a
   // round began, since the tab bar would appear but stay parked on Chat.
+  // Also force the sheet open: a round arriving while it's collapsed must
+  // still be seen, unlike a plain chat message (which only gets a dot).
   useEffect(() => {
     const handleGameStatement = () => {
       setGameLive(true);
       setCallTab("game");
+      setSheetOpen(true);
     };
     const handleGameOver = () => {
       setGameLive(false);
@@ -58,6 +70,41 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
       socket.off("gameOver", handleGameOver);
     };
   }, []);
+
+  // Mark the Chat tab whenever a partner message lands while chat isn't the
+  // visible pane. Own messages (sender === socket.id) and the system's
+  // "connected" line don't count — only something the user hasn't seen yet.
+  const prevMessageCountRef = useRef(messages.length);
+  useEffect(() => {
+    const prevCount = prevMessageCountRef.current;
+    prevMessageCountRef.current = messages.length;
+    if (messages.length <= prevCount) return;
+
+    const arrivedFromPartner = messages
+      .slice(prevCount)
+      .some((m) => m.sender !== socket.id && m.sender !== "__system__");
+
+    if (arrivedFromPartner && !isChatPaneVisible) {
+      setChatHasUnseen(true);
+    }
+  }, [messages, isChatPaneVisible]);
+
+  // Clear the dot the moment the chat pane actually becomes the visible one.
+  useEffect(() => {
+    if (isChatPaneVisible) setChatHasUnseen(false);
+  }, [isChatPaneVisible]);
+
+  // Tap-driven sheet control (no drag gesture, per design): tapping the
+  // inactive tab switches to it and opens the sheet; tapping the tab that's
+  // already active toggles the sheet shut/open again.
+  const handleTabClick = (tab) => {
+    if (tab === callTab) {
+      setSheetOpen((open) => !open);
+    } else {
+      setCallTab(tab);
+      setSheetOpen(true);
+    }
+  };
 
   // FIX 1: Track attempts with a ref instead of state — state changes trigger
   // the useEffect dependency, which was causing the ghost reconnect loop.
@@ -339,6 +386,7 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
     // gameStatement — they asked for the round, they should land on it
     // immediately and see the loading state instead of the chat tab.
     setCallTab("game");
+    setSheetOpen(true);
     socket.emit("gameStart");
   };
 
@@ -350,7 +398,10 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
         };
   return (
     <div className="video-chat-container">
-      <div className="video-grid">
+      {/* vc-sheet-open lives on the grid itself (not just the sheet) because
+          the PiP thumbnail also needs to read --vc-sheet-h to anchor itself —
+          the variable has to cascade to all three mobile pieces. */}
+      <div className={`video-grid ${sheetOpen ? "vc-sheet-open" : ""}`}>
         <div className="video-box remote-video">
           <video ref={remoteVideoRef} autoPlay playsInline />
           <div className="video-label">
@@ -376,85 +427,88 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
               Reconnect
             </button>
           )}
-          <button
-            style={{ zIndex: 1000, position: "absolute", bottom: "10px", right: "10px" }}
-            className="next-button"
-            onClick={onNext}
-          >
-            Pass {">"}
-          </button>
           <ProfilePanel profile={partnerProfile} inCall />
         </div>
 
-        <div>
-          <div className="video-box local-video">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              style={{ transform: "none" }}
+        {/* Real thumbnail now — no controls inside it, so it stays small
+            enough on mobile to actually show the user their own framing. */}
+        <div className="video-box local-video">
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{ transform: "none" }}
+          />
+          <div className="video-label">You</div>
+        </div>
+
+        {/* Controls row: a direct grid/flex child of .video-grid now, not a
+            child of the local PiP. Mobile: a static row between the video
+            and the sheet. Desktop: absolutely positioned over the remote
+            video's bottom-centre (see videochat.css). */}
+        <div className="video-controls">
+          <button
+            className={`control-btn ${isMuted ? "control-off" : ""}`}
+            onClick={toggleMute}
+            style={{ padding: 0, width: "36px", height: "36px" }}
+          >
+            {isMuted
+              ? <MicOff size={iconSize} strokeWidth={1.2} />
+              : <Mic size={iconSize} strokeWidth={1.5} />}
+          </button>
+          <button
+            className={`control-btn ${isCameraOff ? "control-off" : ""}`}
+            onClick={toggleCamera}
+            style={{ padding: 0, width: "36px", height: "36px" }}
+          >
+            {isCameraOff
+              ? <VideoOff size={iconSize} strokeWidth={1.2} />
+              : <Video size={iconSize} strokeWidth={1.5} />}
+          </button>
+          <button
+            className="control-btn"
+            onClick={startGame}
+            style={{ padding: 0, width: "36px", height: "36px" }}
+            aria-label="never have i ever"
+          >
+            <img
+              src={`${EMOJI_BASE}/sparkles_2728.png`}
+              alt=""
+              style={{ width: 20, height: 20 }}
             />
-            <div className="video-label">You</div>
-            <div className="video-controls">
-              <button
-                className={`control-btn ${isMuted ? "control-off" : ""}`}
-                onClick={toggleMute}
-                style={{ padding: 0, width: "36px", height: "36px" }}
-              >
-                {isMuted
-                  ? <MicOff size={iconSize} strokeWidth={1.2} />
-                  : <Mic size={iconSize} strokeWidth={1.5} />}
-              </button>
-              <button
-                className={`control-btn ${isCameraOff ? "control-off" : ""}`}
-                onClick={toggleCamera}
-                style={{ padding: 0, width: "36px", height: "36px" }}
-              >
-                {isCameraOff
-                  ? <VideoOff size={iconSize} strokeWidth={1.2} />
-                  : <Video size={iconSize} strokeWidth={1.5} />}
-              </button>
-              <button
-                className="control-btn"
-                onClick={startGame}
-                style={{ padding: 0, width: "36px", height: "36px" }}
-                aria-label="never have i ever"
-              >
-                <img
-                  src={`${EMOJI_BASE}/sparkles_2728.png`}
-                  alt=""
-                  style={{ width: 20, height: 20 }}
-                />
-              </button>
-              <button className="control-btn hide-video-btn" onClick={endCall}>
-                <PhoneOff size={iconSize} strokeWidth={1.5} />
-              </button>
-            </div>
-          </div>
+          </button>
+          <button className="control-btn hide-video-btn" onClick={endCall}>
+            <PhoneOff size={iconSize} strokeWidth={1.5} />
+          </button>
+          <button className="next-button" onClick={onNext}>
+            Pass {">"}
+          </button>
         </div>
 
         <div className="text-chat-section">
-          {/* Tab chrome only exists while a round is live — no game, no tabs,
-              the bottom region is exactly today's chat-only layout. */}
-          {showGameTab && (
-            <div className="vc-tabs">
-              <button
-                type="button"
-                className={`vc-tab ${callTab === "chat" ? "vc-tab-active" : ""}`}
-                onClick={() => setCallTab("chat")}
-              >
-                Chat
-              </button>
+          {/* The tab bar is always visible and doubles as the sheet's
+              handle: tapping the inactive tab switches to it and expands,
+              tapping the active tab collapses. Tap-driven only — no drag. */}
+          <div className="vc-tabs">
+            <button
+              type="button"
+              className={`vc-tab ${callTab === "chat" ? "vc-tab-active" : ""}`}
+              onClick={() => handleTabClick("chat")}
+            >
+              Chat
+              {chatHasUnseen && <span className="vc-tab-dot" aria-hidden="true" />}
+            </button>
+            {showGameTab && (
               <button
                 type="button"
                 className={`vc-tab ${callTab === "game" ? "vc-tab-active" : ""}`}
-                onClick={() => setCallTab("game")}
+                onClick={() => handleTabClick("game")}
               >
                 Game
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Both panes stay mounted always; only visibility (CSS) toggles.
               Unmounting the chat would drop its scroll position, and
