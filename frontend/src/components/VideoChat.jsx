@@ -4,10 +4,23 @@ import ChatPanel from "./chat/ChatPanel";
 import ProfilePanel from "./profile/ProfilePanel.jsx";
 import NeverHaveIEver from "./game/NeverHaveIEver.jsx";
 import { EMOJI_BASE } from "../interests.js";
-import { Video, VideoOff, Mic, MicOff, PhoneOff } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, PhoneOff, UserRound } from 'lucide-react';
 
 import "./videochat.css";
 import "./game/nhie.css";
+
+// Own-camera-off placeholder only. Reads straight from localStorage and the
+// value never leaves this function — it is rendered on the local tile and
+// nowhere else. buildPartnerPayload's six-field list is the only channel
+// identity is allowed to reach a partner through, and an initial has no field
+// on it; do not add this to the mediaState emit (or any other socket emit)
+// no matter how convenient it looks later.
+function getLocalInitial() {
+  const email =
+    localStorage.getItem("userEmail") || localStorage.getItem("collegeEmail") || "";
+  const match = email.match(/[a-zA-Z]/);
+  return match ? match[0].toUpperCase() : "?";
+}
 
 function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, onNext, partnerTyping, onReactPair, onTypingPair, partnerProfile }) {
   const localVideoRef = useRef(null);
@@ -16,11 +29,20 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
   const localStreamRef = useRef(null);
 
   const processedSignalsRef = useRef(new Set());
+  const localInitialRef = useRef(null);
+  if (localInitialRef.current === null) localInitialRef.current = getLocalInitial();
 
   const [connectionState, setConnectionState] = useState("new");
-  const [isMuted, setIsMuted] = useState(false);
-  const [isCameraOff, setIsCameraOff] = useState(false);
+  // Preferences persist across "Pass": VideoChat fully unmounts and
+  // remounts on every partner change, so component state alone can't survive
+  // it — localStorage is what makes a mute choice outlive the remount.
+  const [isMuted, setIsMuted] = useState(() => localStorage.getItem("prefMuted") === "true");
+  const [isCameraOff, setIsCameraOff] = useState(() => localStorage.getItem("prefCameraOff") === "true");
   const [isConnected, setIsConnected] = useState(false);
+  // Partner's own mute/camera state, learned via the mediaState/partnerMediaState
+  // round trip below. Never identity — just the two booleans the server
+  // sanitizes on the way in.
+  const [partnerMediaState, setPartnerMediaState] = useState({ muted: false, cameraOff: false });
   // Only tracks whether THIS user pressed start, so their own card can show a
   // spinner while the first batch generates. It does not gate mounting: the
   // card is always mounted so it is always listening, otherwise the partner
@@ -208,6 +230,19 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
           localVideoRef.current.srcObject = stream;
         }
 
+        // Re-apply the persisted mute/camera preference to the fresh tracks
+        // BEFORE they're handed to the peer connection. getUserMedia always
+        // hands back tracks enabled by default, so without this every "Pass"
+        // silently unmuted and un-hid whoever had turned themselves off.
+        const prefMuted = localStorage.getItem("prefMuted") === "true";
+        const prefCameraOff = localStorage.getItem("prefCameraOff") === "true";
+        stream.getAudioTracks().forEach((track) => { track.enabled = !prefMuted; });
+        stream.getVideoTracks().forEach((track) => { track.enabled = !prefCameraOff; });
+
+        // Let the new partner know where things stand right away, rather than
+        // waiting for a toggle that may never come this round.
+        socket.emit("mediaState", { muted: prefMuted, cameraOff: prefCameraOff });
+
         createPeerConnection();
 
         // --- Socket handlers defined once, cleaned up on unmount ---
@@ -299,12 +334,22 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
           setShowReconnectBtn(false);
           createPeerConnection();
         };
-       
+
+        // Partner's mute/camera state — never identity, just the two
+        // booleans the server sanitized on the way in.
+        const handlePartnerMediaState = (state) => {
+          setPartnerMediaState({
+            muted: !!(state && state.muted),
+            cameraOff: !!(state && state.cameraOff),
+          });
+        };
+
         socket.on("webrtc-offer", handleOffer);
         socket.on("webrtc-answer", handleAnswer);
         socket.on("ice-candidate", handleIceCandidate);
         socket.on("create-offer", createOfferFn);
         socket.on("partnerLeft", handlePartnerLeft);
+        socket.on("partnerMediaState", handlePartnerMediaState);
 
         setTimeout(() => {
           if (isComponentMounted) {
@@ -319,6 +364,7 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
           socket.off("ice-candidate", handleIceCandidate);
           socket.off("create-offer", createOfferFn);
           socket.off("partnerLeft", handlePartnerLeft);
+          socket.off("partnerMediaState", handlePartnerMediaState);
         };
       } catch (error) {
         console.error("Error accessing media devices:", error);
@@ -361,7 +407,12 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
     if (localStreamRef.current) {
       const audioTracks = localStreamRef.current.getAudioTracks();
       audioTracks.forEach((track) => { track.enabled = !track.enabled; });
-      setIsMuted((prev) => !prev);
+      setIsMuted((prev) => {
+        const next = !prev;
+        localStorage.setItem("prefMuted", String(next));
+        socket.emit("mediaState", { muted: next, cameraOff: isCameraOff });
+        return next;
+      });
     }
   };
 
@@ -369,7 +420,12 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
     if (localStreamRef.current) {
       const videoTracks = localStreamRef.current.getVideoTracks();
       videoTracks.forEach((track) => { track.enabled = !track.enabled; });
-      setIsCameraOff((prev) => !prev);
+      setIsCameraOff((prev) => {
+        const next = !prev;
+        localStorage.setItem("prefCameraOff", String(next));
+        socket.emit("mediaState", { muted: isMuted, cameraOff: next });
+        return next;
+      });
     }
   };
 
@@ -407,6 +463,20 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
           <div className="video-label">
             Partner {isConnected ? "" : "(Connecting...)"}
           </div>
+          {partnerMediaState.cameraOff && (
+            <div className="vc-camera-off-avatar" aria-hidden="true">
+              {/* Neutral placeholder, never a letter — this is the partner's
+                  tile, and their identity has no channel to reach this screen. */}
+              <div className="vc-avatar-circle vc-avatar-circle-partner">
+                <UserRound size={40} strokeWidth={1.5} />
+              </div>
+            </div>
+          )}
+          {partnerMediaState.muted && (
+            <div className="vc-muted-badge" role="status" aria-label="Partner is muted">
+              <MicOff size={16} strokeWidth={2} />
+            </div>
+          )}
           {showReconnectBtn && (
             <button
               onClick={reconnect}
@@ -444,6 +514,13 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
             style={{ transform: "scaleX(-1)" }}
           />
           <div className="video-label">You</div>
+          {isCameraOff && (
+            <div className="vc-camera-off-avatar" aria-hidden="true">
+              <div className="vc-avatar-circle vc-avatar-circle-self">
+                {localInitialRef.current}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Controls row: a direct grid/flex child of .video-grid now, not a

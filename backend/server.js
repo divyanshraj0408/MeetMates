@@ -380,6 +380,37 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Call state — whether a socket has muted itself or turned its camera off.
+  // Never identity, so unlike visibleProfileFor this needs no lookup at all,
+  // but it gets the same treatment: built field by field so a payload can
+  // never smuggle anything extra onto the wire. Stored on the sender's own
+  // pair entry (not a module-level Map) so cleanupChatPair's wholesale
+  // delete removes it for free when the pair ends.
+  socket.on("mediaState", (payload) => {
+    const pair = chatPairs[socket.id];
+    if (!pair) return;
+
+    const p = payload || {};
+    const state = { muted: p.muted === true, cameraOff: p.cameraOff === true };
+    pair.mediaState = state;
+
+    const partnerId = pair.partner;
+    const partnerSocket = partnerId && io.sockets.sockets.get(partnerId);
+    if (partnerSocket) {
+      partnerSocket.emit("partnerMediaState", state);
+    }
+
+    // Both sides emit this once on mount, right after getUserMedia. Whichever
+    // one reaches the server first would otherwise never learn the other's
+    // state — the earlier emit already happened and nobody was listening for
+    // it yet. Handing back the partner's last-known state here (if any) closes
+    // that race without either client needing to ask again.
+    const partnerPair = partnerId && chatPairs[partnerId];
+    if (partnerPair && partnerPair.mediaState) {
+      socket.emit("partnerMediaState", partnerPair.mediaState);
+    }
+  });
+
   // "Never Have I Ever" game state. Deliberately kept on chatPairs[id].game
   // rather than a module-level Map: it lives and dies with the pair, so
   // cleanupChatPair (which deletes both pair entries wholesale) tears the
