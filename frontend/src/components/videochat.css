@@ -174,6 +174,16 @@
   color: #ffffff;
 }
 
+/* The logo inside the partner's camera-off bubble. Sized as a fraction of the
+   bubble rather than a fixed px so it stays centred and proportional whether
+   the tile is a desktop grid cell or a 100px phone thumbnail. */
+.vc-avatar-logo {
+  width: 60%;
+  height: 60%;
+  object-fit: contain;
+  display: block;
+}
+
 /* Small badge announcing the partner has muted themselves. Anchored
    bottom-right so it can never collide with .video-label (top-left) or
    .pf-panel-incall (top-right). */

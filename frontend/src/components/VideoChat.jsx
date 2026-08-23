@@ -4,7 +4,7 @@ import ChatPanel from "./chat/ChatPanel";
 import ProfilePanel from "./profile/ProfilePanel.jsx";
 import NeverHaveIEver from "./game/NeverHaveIEver.jsx";
 import { EMOJI_BASE } from "../interests.js";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, UserRound } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, PhoneOff } from 'lucide-react';
 
 import "./videochat.css";
 import "./game/nhie.css";
@@ -465,10 +465,12 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
           </div>
           {partnerMediaState.cameraOff && (
             <div className="vc-camera-off-avatar" aria-hidden="true">
-              {/* Neutral placeholder, never a letter — this is the partner's
-                  tile, and their identity has no channel to reach this screen. */}
+              {/* The pingo mark, deliberately not a letter. This is the
+                  partner's tile and their identity has no channel that reaches
+                  this screen — the logo is the same for everyone, so it cannot
+                  carry anything about who they are. */}
               <div className="vc-avatar-circle vc-avatar-circle-partner">
-                <UserRound size={40} strokeWidth={1.5} />
+                <img src="/pics/pingpalslogo.svg" alt="" className="vc-avatar-logo" />
               </div>
             </div>
           )}
