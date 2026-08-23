@@ -294,13 +294,32 @@ function App() {
 
     if (withVideo) {
       try {
-        await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        // This is only a permission probe — VideoChat opens its own stream on
+        // mount. The tracks MUST be stopped here: leaving them live held the
+        // camera and mic open for the rest of the session, so VideoChat's own
+        // getUserMedia then failed on Android with NotReadableError, which this
+        // catch reported as "permission denied". Desktop browsers tolerate the
+        // duplicate; phones do not.
+        const probe = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+        probe.getTracks().forEach((track) => track.stop());
         setMediaPermission(true);
         setVideoEnabled(true);
       } catch (err) {
-        alert(
-          "Camera or microphone permission denied. Chat will continue without video."
-        );
+        // Say what actually went wrong. Every failure used to be reported as a
+        // permission denial, which sent people to fix a setting that was fine.
+        const reason =
+          err?.name === "NotAllowedError" || err?.name === "SecurityError"
+            ? "Camera and mic access was blocked. Allow it in your browser's site settings."
+            : err?.name === "NotFoundError" || err?.name === "OverconstrainedError"
+            ? "No camera or mic found on this device."
+            : err?.name === "NotReadableError" || err?.name === "AbortError"
+            ? "Your camera is already in use by another app or tab. Close it and try again."
+            : `Could not start your camera (${err?.name || "unknown error"}).`;
+        alert(`${reason} Chat will continue without video.`);
+        console.error("getUserMedia failed:", err?.name, err?.message);
         setMediaPermission(false);
         setVideoEnabled(false);
       }

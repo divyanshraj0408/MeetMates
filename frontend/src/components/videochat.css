@@ -544,3 +544,32 @@
     font-size: 1.2rem;
   }
 }
+
+/* Shown in the local tile when getUserMedia fails on mount. Previously this
+   was console.error only, which is invisible on a phone — the call just ran
+   with no local video and no reason given. The error name is included because
+   NotAllowedError, NotReadableError and NotFoundError need three different
+   fixes from the user. */
+.vc-media-error {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(212, 63, 36, 0.92);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.vc-media-error-name {
+  font-weight: 400;
+  opacity: 0.85;
+  font-size: 0.66rem;
+}

@@ -43,6 +43,8 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
   // round trip below. Never identity — just the two booleans the server
   // sanitizes on the way in.
   const [partnerMediaState, setPartnerMediaState] = useState({ muted: false, cameraOff: false });
+  // Set when getUserMedia fails on mount, so the reason reaches the screen.
+  const [mediaError, setMediaError] = useState(null);
   // Only tracks whether THIS user pressed start, so their own card can show a
   // spinner while the first batch generates. It does not gate mounting: the
   // card is always mounted so it is always listening, otherwise the partner
@@ -368,6 +370,12 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
         };
       } catch (error) {
         console.error("Error accessing media devices:", error);
+        // Surfaced, not just logged. This runs on a phone where nobody can
+        // open a console, and a silent failure here leaves the call running
+        // with no local video and no explanation of why.
+        if (isComponentMounted) {
+          setMediaError(error?.name || "unknown error");
+        }
       }
     };
 
@@ -516,6 +524,12 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
             style={{ transform: "scaleX(-1)" }}
           />
           <div className="video-label">You</div>
+          {mediaError && (
+            <div className="vc-media-error" role="alert">
+              camera unavailable
+              <span className="vc-media-error-name">{mediaError}</span>
+            </div>
+          )}
           {isCameraOff && (
             <div className="vc-camera-off-avatar" aria-hidden="true">
               <div className="vc-avatar-circle vc-avatar-circle-self">

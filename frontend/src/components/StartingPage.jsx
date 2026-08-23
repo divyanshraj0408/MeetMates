@@ -86,12 +86,21 @@ function StartPage({
 
     getMedia();
 
-    return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
-      }
-    };
+    return () => stopPreview();
   }, []);
+
+  // Hand the camera back before the call asks for it. Unmount cleanup is too
+  // late: this component stays mounted through the "waiting" screen, so the
+  // preview was still holding the camera when handleStartChat and then
+  // VideoChat each opened their own stream. Android refuses the second
+  // acquisition with NotReadableError; desktop quietly allows it, which is why
+  // this only ever showed up on a phone.
+  const stopPreview = () => {
+    const stream = videoRef.current && videoRef.current.srcObject;
+    if (!stream) return;
+    stream.getTracks().forEach((track) => track.stop());
+    videoRef.current.srcObject = null;
+  };
 
   return (
     <div className="startpage">
@@ -161,14 +170,15 @@ function StartPage({
 
           <button
             className="vibe-btn"
-            onClick={() =>
+            onClick={() => {
+              stopPreview();
               onStartChat({
                 gender: genderFilter,
                 // A country filter with no country of your own does nothing,
                 // so do not send one.
                 location: myCountry ? locationFilter : "worldwide",
-              })
-            }
+              });
+            }}
             disabled={loading}
             style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
           >
