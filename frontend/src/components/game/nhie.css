@@ -1,30 +1,40 @@
 /* Every selector is nhie- prefixed. Unscoped component class names have
    leaked between pages in this app before and cost days to unpick. */
 
-/* Sits over the bottom of .video-box.remote-video, which is already
-   position: relative. ProfilePanel owns the top-right corner of that same
-   box (.pf-panel-incall), so this only ever claims the bottom strip — and
-   stops short of the "Pass >" button pinned at bottom:10px/right:10px. */
+/* No longer an overlay: this now fills the Game tab's pane inside
+   .text-chat-section (see videochat.css's .vc-pane / VideoChat.jsx) — the
+   same bottom region the chat panel occupies, one tab at a time. Static
+   positioning, scrolls internally when a round's content runs long. It can
+   use a solid background now that it never sits over live video — plain text
+   on it reads better than translucent.
+
+   Sized with flex:1 + min-height:0, not height:100%, matching gc-root's
+   pattern for the same slot: .nhie-card is a flex item of .vc-pane, which is
+   itself the flex ancestor chain (.video-chat-container > .video-grid >
+   .text-chat-section > .vc-pane) that overflow-y:auto here depends on. Each
+   of those already carries min-height:0 (checked); this is the last link —
+   without it here, this flex item would refuse to shrink below its content
+   height and the scrollbar would never engage. This project has hit that
+   exact bug three times before. */
 .nhie-card {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 54px;
-  z-index: 6;
-  max-height: 46%;
+  position: static;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   overflow-y: auto;
 
-  background: rgba(255, 250, 255, 0.88);
+  background: #fffaff;
   border: 3px solid #0d0d0d;
   border-radius: 16px;
   box-shadow: 5px 5px 0 #0d0d0d;
-  padding: 12px 14px 14px;
+  padding: 14px 16px 16px;
 
-  /* Own colour explicitly: this card is its own surface sitting over live
-     video, not a child of the page background, so it must not inherit
-     whatever text colour happens to be sitting behind it. */
+  /* Own colour explicitly: this card is its own surface, not a child of the
+     page background, so it must not inherit whatever text colour happens to
+     be sitting behind it. */
   color: #0d0d0d;
   font-family: "Rethink Sans", sans-serif;
+  box-sizing: border-box;
 }
 
 .nhie-head {
@@ -61,8 +71,8 @@
 
 .nhie-close {
   margin-left: auto;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   flex: 0 0 auto;
   border: 2px solid #0d0d0d;
   border-radius: 50%;
@@ -125,7 +135,7 @@
 
 .nhie-choice {
   flex: 1;
-  min-height: 46px;
+  min-height: 48px;
   border: 3px solid #0d0d0d;
   border-radius: 14px;
   background: #fff;
@@ -209,11 +219,12 @@
 .nhie-next {
   margin-top: 4px;
   align-self: flex-end;
+  min-height: 44px;
   background: #9b71ff;
   color: #fff;
   border: 3px solid #0d0d0d;
   border-radius: 999px;
-  padding: 8px 20px;
+  padding: 10px 22px;
   font-family: "Rethink Sans", sans-serif;
   font-size: 0.88rem;
   font-weight: 700;
@@ -226,12 +237,11 @@
   box-shadow: 1px 1px 0 #0d0d0d;
 }
 
-/* Small phones: trim padding a touch further so the card reliably sits
-   under half the video height rather than close to it. */
+/* Small phones: trim padding a touch further; the card now fills the whole
+   Game tab pane so there is no max-height to cap it against anymore. */
 @media (max-width: 380px) {
   .nhie-card {
     padding: 10px 12px 12px;
-    max-height: 44%;
   }
 
   .nhie-statement {

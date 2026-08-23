@@ -60,6 +60,11 @@
     flex-direction: column;
     gap: 15px;
     height: 100%;
+    /* Single source of truth for where the bottom region (chat/game) starts.
+       The PiP unit below anchors off this same variable instead of a
+       hardcoded guess, so the two cannot drift apart again. */
+    position: relative;
+    --vc-bottom-h: 46vh;
   }
 
   .video-grid > :first-child { /* remote video */
@@ -69,10 +74,14 @@
     position: relative;
   }
 
-  .video-grid > :nth-child(2) { /* local video */
+  .video-grid > :nth-child(2) { /* local video + controls (PiP unit) */
     position: absolute;
-    bottom: 320px;
-    right: 35px;
+    /* Anchored to the top edge of the bottom region (--vc-bottom-h) plus a
+       12px gap, rather than a hardcoded bottom offset guessed against the
+       wrong ancestor. Bottom-left corner of the remote video box, so it no
+       longer collides with the "Pass >" button in the bottom-right corner. */
+    bottom: calc(var(--vc-bottom-h) + 12px);
+    left: 12px;
     width: 40%;
     height: auto;
     max-width: 150px;
@@ -82,11 +91,12 @@
     order: 2;
   }
 
-  .video-grid > :nth-child(3) { /* chat section */
+  .video-grid > :nth-child(3) { /* chat/game bottom region */
     order: 3;
-    height: auto;
-    max-height: 40%;
-    min-height: 200px;
+    /* Real height (was max-height: 40%; min-height: 200px) — the PiP anchor
+       above is calculated against this exact value, so it has to be a fixed
+       height, not a range. */
+    height: var(--vc-bottom-h);
     width: 100%;
   }
 
@@ -211,6 +221,49 @@
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+}
+
+/* Chat/Game tab bar for the bottom region — only rendered (in JS) while a
+   round is live, so on every other call the bottom region is plain chat with
+   no tab chrome. Unlike .pane-tabs in startpage.css this is not hidden on
+   desktop: the game panel lives in the same bottom-right grid cell as chat
+   on desktop too, so the tabs are the only way to switch between them there.
+   Same look as .pane-tab, vc- prefixed to stay out of that page's scope. */
+.vc-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex: 0 0 auto;
+}
+
+.vc-tab {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  background: #3c3c3c;
+  color: #fff;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.vc-tab-active {
+  background: #0099ff;
+}
+
+/* Both the chat pane and the game pane are always mounted (see VideoChat.jsx)
+   — only display is toggled here. Unmounting chat would drop its scroll
+   position; unmounting the game would unregister its socket listeners. */
+.vc-pane {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.vc-pane-active {
+  display: flex;
 }
 
 

@@ -26,6 +26,38 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
   // card is always mounted so it is always listening, otherwise the partner
   // never registers a gameStatement handler and the round shows on one screen.
   const [gameStarting, setGameStarting] = useState(false);
+  // True from the first gameStatement until gameOver. Combined with
+  // gameStarting (below) this decides whether the Game tab exists at all —
+  // the tab bar is only rendered while a round is actually live.
+  const [gameLive, setGameLive] = useState(false);
+  // Which pane the bottom region shows: "chat" or "game". Defaults to chat so
+  // the bottom region is indistinguishable from today's chat-only layout
+  // until a game actually starts.
+  const [callTab, setCallTab] = useState("chat");
+  const showGameTab = gameStarting || gameLive;
+
+  // Auto-switch to the Game tab the moment a round arrives. This is required
+  // for the partner: they never pressed start, so gameStarting is false on
+  // their screen — without this effect they'd have no reason to notice a
+  // round began, since the tab bar would appear but stay parked on Chat.
+  useEffect(() => {
+    const handleGameStatement = () => {
+      setGameLive(true);
+      setCallTab("game");
+    };
+    const handleGameOver = () => {
+      setGameLive(false);
+      setCallTab("chat");
+    };
+
+    socket.on("gameStatement", handleGameStatement);
+    socket.on("gameOver", handleGameOver);
+
+    return () => {
+      socket.off("gameStatement", handleGameStatement);
+      socket.off("gameOver", handleGameOver);
+    };
+  }, []);
 
   // FIX 1: Track attempts with a ref instead of state — state changes trigger
   // the useEffect dependency, which was causing the ghost reconnect loop.
@@ -303,6 +335,10 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
 
   const startGame = () => {
     setGameStarting(true);
+    // Jump the presser to the Game tab right away rather than waiting for
+    // gameStatement — they asked for the round, they should land on it
+    // immediately and see the loading state instead of the chat tab.
+    setCallTab("game");
     socket.emit("gameStart");
   };
 
@@ -348,11 +384,6 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
             Pass {">"}
           </button>
           <ProfilePanel profile={partnerProfile} inCall />
-          <NeverHaveIEver
-            socket={socket}
-            starting={gameStarting}
-            onClose={() => setGameStarting(false)}
-          />
         </div>
 
         <div>
@@ -404,17 +435,51 @@ function VideoChat({ socketId, toggleVideo, messages, onSendMessage, endCall, on
         </div>
 
         <div className="text-chat-section">
-          <ChatPanel
-            messages={messages}
-            myKey={socket.id}
-            keyOf={(m) => m.sender}
-            showIdentity={false}
-            emptyText="Say something 👋"
-            typingLabel={partnerTyping ? "typing…" : null}
-            onSend={onSendMessage}
-            onReact={onReactPair}
-            onTyping={onTypingPair}
-          />
+          {/* Tab chrome only exists while a round is live — no game, no tabs,
+              the bottom region is exactly today's chat-only layout. */}
+          {showGameTab && (
+            <div className="vc-tabs">
+              <button
+                type="button"
+                className={`vc-tab ${callTab === "chat" ? "vc-tab-active" : ""}`}
+                onClick={() => setCallTab("chat")}
+              >
+                Chat
+              </button>
+              <button
+                type="button"
+                className={`vc-tab ${callTab === "game" ? "vc-tab-active" : ""}`}
+                onClick={() => setCallTab("game")}
+              >
+                Game
+              </button>
+            </div>
+          )}
+
+          {/* Both panes stay mounted always; only visibility (CSS) toggles.
+              Unmounting the chat would drop its scroll position, and
+              unmounting the game would unregister its socket listeners —
+              the exact bug that made the round appear on one screen only. */}
+          <div className={`vc-pane ${callTab === "chat" ? "vc-pane-active" : ""}`}>
+            <ChatPanel
+              messages={messages}
+              myKey={socket.id}
+              keyOf={(m) => m.sender}
+              showIdentity={false}
+              emptyText="Say something 👋"
+              typingLabel={partnerTyping ? "typing…" : null}
+              onSend={onSendMessage}
+              onReact={onReactPair}
+              onTyping={onTypingPair}
+            />
+          </div>
+          <div className={`vc-pane ${callTab === "game" ? "vc-pane-active" : ""}`}>
+            <NeverHaveIEver
+              socket={socket}
+              starting={gameStarting}
+              onClose={() => setGameStarting(false)}
+            />
+          </div>
         </div>
       </div>
     </div>
